@@ -11,6 +11,14 @@ body {
   height: 100%;
 }
 
+body {
+  visibility: hidden;
+}
+
+body.loaded {
+  visibility: visible;
+}
+
 :root {
   --white: #ffffff;
   --f8: #f8f5f0;
@@ -785,13 +793,13 @@ body {
   }
 
   .btn-shop {
-  display: inline-flex;
-  padding: 10px 10px;
-}
+    display: inline-flex;
+    padding: 10px 10px;
+  }
 
-.btn-shop .btn-shop-label {
-  display: none; /* hide text, keep icon */
-}
+  .btn-shop .btn-shop-label {
+    display: none; /* hide text, keep icon */
+  }
 
   /* Notification panel: full width above bottom nav */
   .notif-panel {

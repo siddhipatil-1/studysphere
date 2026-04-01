@@ -451,7 +451,7 @@
 
       <div class="main-grid">
         <div class="left-panel">
-          <div class="tab-bar">
+          <!-- <div class="tab-bar">
             <button class="tab-btn active">My Notes</button>
             <input
               type="file"
@@ -460,7 +460,7 @@
               onchange="uploadFile(event)"
             />
             <button class="tab-btn tab-btn-dark">All Resources</button>
-          </div>
+          </div> -->
 
           <textarea
             id="notesArea"
@@ -514,8 +514,8 @@
             <div class="msg-row">
               <div class="ai-avatar">AI</div>
               <div class="msg-bubble ai markdown-body">
-                Ready to study! Paste your notes on the left or
-                just ask me a question. What's on your mind?
+                Ready to study! Paste your notes on the left or just ask me a
+                question. What's on your mind?
               </div>
             </div>
           </div>
@@ -543,42 +543,6 @@
     <script>
       lucide.createIcons();
 
-      let currentFileUri = null;
-      let currentFileMimeType = null;
-
-      async function uploadFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        addMessage(`Uploading **${file.name}** directly…`, "user");
-        const formData = new FormData();
-        formData.append("file", file);
-        try {
-          const response = await fetch("http://localhost:3000/upload-file", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await response.json();
-          if (data.fileUri) {
-            currentFileUri = data.fileUri;
-            currentFileMimeType = data.mimeType;
-            const notesArea = document.getElementById("notesArea");
-            notesArea.value =
-              `[Attached Document: ${data.fileName}]\n\n` + notesArea.value;
-            addMessage(
-              `Successfully processed the PDF! I can now "see" the entire document, including images, tables, and formatting.`,
-              "ai",
-            );
-          } else {
-            addMessage(
-              "I couldn't upload that file. Try a different PDF.",
-              "ai",
-            );
-          }
-        } catch (e) {
-          addMessage("Server error. Is your backend running?", "ai");
-        }
-      }
-
       async function runAI(promptText) {
         const context = document.getElementById("notesArea").value.trim();
         const chatWindow = document.getElementById("chatWindow");
@@ -598,8 +562,6 @@
             body: JSON.stringify({
               prompt: promptText,
               context,
-              fileUri: currentFileUri,
-              fileMimeType: currentFileMimeType,
             }),
           });
           const data = await response.json();

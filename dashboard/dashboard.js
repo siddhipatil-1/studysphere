@@ -4,6 +4,10 @@
 
 window.supabase = window.supabaseClient;
 
+window.addEventListener("load", () => {
+  document.body.classList.add("loaded");
+});
+
 (async function initDashboard() {
   await window.supabaseClient.auth.getSession();
 
