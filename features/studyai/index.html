@@ -556,14 +556,17 @@
         chatWindow.scrollTop = chatWindow.scrollHeight;
 
         try {
-          const response = await fetch("http://localhost:3000/ask-ai", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt: promptText,
-              context,
-            }),
-          });
+          const response = await fetch(
+            "https://studysphere-backend-llh1.onrender.com/ask-ai",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt: promptText,
+                context,
+              }),
+            },
+          );
           const data = await response.json();
           document.getElementById(loadingId).remove();
           addMessage(data.text, "ai");
