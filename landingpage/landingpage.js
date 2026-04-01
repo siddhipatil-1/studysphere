@@ -2,7 +2,7 @@ document.getElementById("googleLogin").addEventListener("click", async () => {
   const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "/dashboard/dashboard.html",
+      redirectTo: window.location.origin + "/dashboard/dashboard.html",
     },
   });
 
