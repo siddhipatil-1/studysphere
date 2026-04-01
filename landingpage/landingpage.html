@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="/assets/favicon.png" />
+    <!-- Lucide icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="landingpage.css" />
+    <title>Landing Page</title>
+  </head>
+  <body>
+    <section class="hero">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        Introducing StudySphere
+      </div>
+
+      <h1 class="headline">
+        Stop Juggling Tabs.<br /><em>Start Studying Smart.</em>
+      </h1>
+
+      <p class="hero-tagline">
+        Notes, tasks, AI assistance, doubt forums, and collaboration — unified
+        into one focused academic workspace.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#cta" class="btn-cta" id="googleLogin">
+          Get Started
+          <i data-lucide="arrow-right"></i>
+        </a>
+        <a href="#features" class="btn-learn">
+          See how it works
+          <i data-lucide="chevron-right"></i>
+        </a>
+      </div>
+
+      <div class="hero-image">
+        <div class="hero-screen">
+          <div class="screen-bar">
+            <div class="sdot r"></div>
+            <div class="sdot y"></div>
+            <div class="sdot g"></div>
+            <div class="surl">StudySphere.app / dashboard</div>
+          </div>
+          <div class="screen-body">
+            <div class="sb">
+              <div class="sb-logo">StudySphere</div>
+              <div class="sb-sec">Workspace</div>
+              <div class="sb-item on">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+              </div>
+              <div class="sb-item">
+                <i data-lucide="notebook-pen"></i> Notes
+              </div>
+              <div class="sb-item">
+                <i data-lucide="library"></i> Subject Bank
+              </div>
+              <div class="sb-item"><i data-lucide="kanban"></i> Tasks</div>
+              <div class="sb-item">
+                <i data-lucide="message-circle"></i> Doubts
+              </div>
+              <div class="sb-item"><i data-lucide="users"></i> Groups</div>
+              <div class="sb-item"><i data-lucide="shopping-bag"></i> Shop</div>
+              <div class="sb-item ai">
+                <i data-lucide="sparkles"></i> Study AI
+              </div>
+            </div>
+            <div class="sc-main">
+              <div class="sc-hello">Good evening, Aryan 👋</div>
+              <div class="sc-date">Thursday, 19 March · Week 12</div>
+              <div class="sc-kpi">
+                <div class="kpi">
+                  <div class="kpi-l">Notes</div>
+                  <div class="kpi-v">14<small>↑3</small></div>
+                </div>
+                <div class="kpi">
+                  <div class="kpi-l">Tasks</div>
+                  <div class="kpi-v">7/10</div>
+                </div>
+                <div class="kpi">
+                  <div class="kpi-l">Doubts</div>
+                  <div class="kpi-v">2<small>new</small></div>
+                </div>
+                <div class="kpi">
+                  <div class="kpi-l">Streak</div>
+                  <div class="kpi-v">12<small>days</small></div>
+                </div>
+              </div>
+              <div class="sc-tl">Today's Tasks</div>
+              <div class="sc-tasks">
+                <div class="sc-task done">
+                  <div class="tb done"></div>
+                  <span>Revise OS — Deadlock chapter</span>
+                </div>
+                <div class="sc-task done">
+                  <div class="tb done"></div>
+                  <span>Submit DBMS assignment</span>
+                </div>
+                <div class="sc-task">
+                  <div class="tb"></div>
+                  <span>DSA — Graph algorithms</span>
+                </div>
+                <div class="sc-task">
+                  <div class="tb"></div>
+                  <span>Generate ML flashcards with AI</span>
+                </div>
+              </div>
+            </div>
+            <div class="sc-right">
+              <div class="ai-card">
+                <div class="ai-label">
+                  <i data-lucide="sparkles"></i> Study AI
+                </div>
+                <div class="ai-msg">
+                  "3 topics in DSA still uncovered. Want me to generate a quick
+                  quiz before tomorrow?"
+                </div>
+              </div>
+              <div>
+                <div class="upcoming-label">Upcoming</div>
+                <div class="ev">
+                  <div class="ev-dot"></div>
+                  <div>
+                    <span class="ev-title">Group Study — ML</span
+                    ><span class="ev-time">Today, 8:00 PM</span>
+                  </div>
+                </div>
+                <div class="ev">
+                  <div class="ev-dot a"></div>
+                  <div>
+                    <span class="ev-title">OS Exam</span
+                    ><span class="ev-time">Fri, 21 March</span>
+                  </div>
+                </div>
+                <div class="ev">
+                  <div class="ev-dot"></div>
+                  <div>
+                    <span class="ev-title">2 new answers</span
+                    ><span class="ev-time">Doubt · Binary Trees</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ STRIP ══════════════ -->
+    <div class="strip">
+      <h2 class="headline reveal">
+        Studying today is <em>fragmented.</em><br />This fixes that.
+      </h2>
+      <p class="sub reveal" style="margin-top: 20px; transition-delay: 0.12s">
+        Too many tabs, too many tools, too much switching. One platform brings
+        your entire academic life together.
+      </p>
+    </div>
+
+    <!-- ══════════════ FEATURES ══════════════ -->
+    <div id="features">
+      <!-- Notes -->
+      <div class="feature-block">
+        <div class="fb-copy reveal from-left">
+          <span class="eyebrow">Notes Organizer</span>
+          <h2 class="headline">Every subject.<br />One place.</h2>
+          <p class="sub">
+            Structured folders, built-in video access, and smart tagging — so
+            your notes are always where you left them, never where you didn't.
+          </p>
+          <a href="#" class="btn-learn"
+            >Explore Notes <i data-lucide="chevron-right"></i
+          ></a>
+        </div>
+        <div class="fb-visual sand reveal from-right">
+          <div class="fcard" style="max-width: 360px">
+            <div class="fcard-header">
+              <i data-lucide="notebook-pen"></i>
+              <div class="fcard-title">My Notes</div>
+            </div>
+            <div class="fcard-body">
+              <div class="note-folder">
+                <i data-lucide="folder"></i>
+                <div class="note-folder-name">Data Structures</div>
+                <div class="note-folder-count">14 notes</div>
+              </div>
+              <div class="note-folder">
+                <i data-lucide="folder"></i>
+                <div class="note-folder-name">Operating Systems</div>
+                <div class="note-folder-count">9 notes</div>
+              </div>
+              <div class="note-folder">
+                <i data-lucide="folder"></i>
+                <div class="note-folder-name">Machine Learning</div>
+                <div class="note-folder-count">7 notes</div>
+              </div>
+              <div class="note-folder">
+                <i data-lucide="folder"></i>
+                <div class="note-folder-name">DBMS</div>
+                <div class="note-folder-count">11 notes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kanban -->
+      <div class="feature-block flip">
+        <div class="fb-copy reveal from-right">
+          <span class="eyebrow">Kanban Board</span>
+          <h2 class="headline">Your deadlines,<br />finally visible.</h2>
+          <p class="sub">
+            Drag tasks across stages. See what's overdue, in progress, and done
+            — at a glance. No mental juggling required.
+          </p>
+          <a href="#" class="btn-learn"
+            >Explore Tasks <i data-lucide="chevron-right"></i
+          ></a>
+        </div>
+        <div class="fb-visual cream reveal from-left">
+          <div class="fcard">
+            <div class="fcard-header">
+              <i data-lucide="kanban"></i>
+              <div class="fcard-title">This Week</div>
+            </div>
+            <div class="fcard-body">
+              <div class="kanban">
+                <div class="kol">
+                  <div class="kol-h">To Do</div>
+                  <div class="kcard">
+                    Graph algorithms
+                    <div class="tag-sm">DSA</div>
+                  </div>
+                  <div class="kcard">
+                    ML Assignment 3
+                    <div class="tag-sm a">Due Fri</div>
+                  </div>
+                </div>
+                <div class="kol">
+                  <div class="kol-h">In Progress</div>
+                  <div class="kcard">
+                    OS revision
+                    <div class="tag-sm a">Exam</div>
+                  </div>
+                </div>
+                <div class="kol">
+                  <div class="kol-h">Done</div>
+                  <div class="kcard">
+                    DBMS submit
+                    <div class="tag-sm g">Done</div>
+                  </div>
+                  <div class="kcard">
+                    Deadlock notes
+                    <div class="tag-sm g">Done</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doubt Forum -->
+      <div class="feature-block">
+        <div class="fb-copy reveal from-left">
+          <span class="eyebrow">Doubt Forum</span>
+          <h2 class="headline">Ask once.<br />Get real answers.</h2>
+          <p class="sub">
+            Community-driven validation means the best answers rise to the top.
+            No noise, no WhatsApp threads — just signal.
+          </p>
+          <a href="#" class="btn-learn"
+            >Explore Doubts <i data-lucide="chevron-right"></i
+          ></a>
+        </div>
+        <div class="fb-visual warm reveal from-right">
+          <div class="fcard">
+            <div class="fcard-header">
+              <i data-lucide="message-circle"></i>
+              <div class="fcard-title">Doubt Forum</div>
+            </div>
+            <div class="fcard-body">
+              <div class="doubt-list">
+                <div class="dq">
+                  <div class="dq-text">
+                    Why does Dijkstra's fail with negative edge weights?
+                  </div>
+                  <div class="dq-meta">
+                    <span>DSA</span
+                    ><span class="dq-ans"
+                      ><i data-lucide="check-circle"></i> 4 answers</span
+                    >
+                  </div>
+                </div>
+                <div class="dq">
+                  <div class="dq-text">
+                    Difference between process and thread in OS?
+                  </div>
+                  <div class="dq-meta">
+                    <span>OS</span
+                    ><span class="dq-ans"
+                      ><i data-lucide="check-circle"></i> 7 answers</span
+                    >
+                  </div>
+                </div>
+                <div class="dq">
+                  <div class="dq-text">
+                    How does gradient descent update weights?
+                  </div>
+                  <div class="dq-meta">
+                    <span>ML</span
+                    ><span class="dq-ans"
+                      ><i data-lucide="check-circle"></i> 3 answers</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shop -->
+      <div class="feature-block flip">
+        <div class="fb-copy reveal from-right">
+          <span class="eyebrow">Online Shop</span>
+          <h2 class="headline">Notes that have<br />been tested.</h2>
+          <p class="sub">
+            Buy and sell notes, question banks, and second-hand textbooks within
+            your college network. Knowledge that's already proven its worth.
+          </p>
+          <a href="#" class="btn-learn"
+            >Explore Shop <i data-lucide="chevron-right"></i
+          ></a>
+        </div>
+        <div class="fb-visual amber reveal from-left">
+          <div class="fcard">
+            <div class="fcard-header">
+              <i data-lucide="shopping-bag"></i>
+              <div class="fcard-title">College Shop</div>
+            </div>
+            <div class="fcard-body">
+              <div class="shop-grid">
+                <div class="shop-item">
+                  <div class="shop-thumb s1">
+                    <i data-lucide="file-text"></i>
+                  </div>
+                  <div class="shop-info">
+                    <div class="shop-name">OS Notes — Complete</div>
+                    <div class="shop-price">₹49</div>
+                  </div>
+                </div>
+                <div class="shop-item">
+                  <div class="shop-thumb s2">
+                    <i data-lucide="book-open"></i>
+                  </div>
+                  <div class="shop-info">
+                    <div class="shop-name">DBMS Textbook</div>
+                    <div class="shop-price">₹120</div>
+                  </div>
+                </div>
+                <div class="shop-item">
+                  <div class="shop-thumb s3">
+                    <i data-lucide="scroll-text"></i>
+                  </div>
+                  <div class="shop-info">
+                    <div class="shop-name">DSA Prev. Papers</div>
+                    <div class="shop-price">₹29</div>
+                  </div>
+                </div>
+                <div class="shop-item">
+                  <div class="shop-thumb s4"><i data-lucide="layers"></i></div>
+                  <div class="shop-info">
+                    <div class="shop-name">ML Flashcard Set</div>
+                    <div class="shop-price">₹39</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ AI HERO ══════════════ -->
+    <section class="ai-hero">
+      <span class="eyebrow reveal">Study AI</span>
+      <h2 class="headline reveal" style="transition-delay: 0.08s">
+        Your smartest<br /><em>study partner.</em>
+      </h2>
+      <p class="sub reveal" style="transition-delay: 0.16s">
+        Not a generic chatbot. An AI that understands your subject, your notes,
+        and where you are in the semester.
+      </p>
+
+      <div class="ai-caps-grid reveal-group" style="margin-top: 56px">
+        <div class="ai-cap-card">
+          <div class="cap-icon"><i data-lucide="microscope"></i></div>
+          <span class="label">Break down complex concepts</span>
+        </div>
+        <div class="ai-cap-card">
+          <div class="cap-icon"><i data-lucide="zap"></i></div>
+          <span class="label">Summarize long notes instantly</span>
+        </div>
+        <div class="ai-cap-card">
+          <div class="cap-icon"><i data-lucide="layers"></i></div>
+          <span class="label">Generate smart flashcards</span>
+        </div>
+        <div class="ai-cap-card">
+          <div class="cap-icon"><i data-lucide="pen-line"></i></div>
+          <span class="label">Exam-ready answer formats</span>
+        </div>
+        <div class="ai-cap-card">
+          <div class="cap-icon"><i data-lucide="circle-help"></i></div>
+          <span class="label">Create quizzes on demand</span>
+        </div>
+      </div>
+
+      <div
+        class="reveal scale-in"
+        style="margin-top: 56px; transition-delay: 0.3s"
+      >
+        <div class="fcard ai-visual" style="max-width: 420px; margin: 0 auto">
+          <div class="fcard-header">
+            <i data-lucide="sparkles"></i>
+            <div class="fcard-title">Study AI</div>
+          </div>
+          <div class="ai-chat">
+            <div class="chat-bubble user">
+              Summarize my OS notes on deadlock prevention.
+            </div>
+            <div class="chat-bubble ai-b">
+              Deadlock prevention eliminates one of the four necessary
+              conditions — mutual exclusion, hold &amp; wait, no preemption, or
+              circular wait. The most common approach is…
+            </div>
+          </div>
+          <div class="ai-chips">
+            <div class="ai-chip">
+              <i data-lucide="layers"></i> Make flashcards
+            </div>
+            <div class="ai-chip">
+              <i data-lucide="circle-help"></i> Quick quiz
+            </div>
+            <div class="ai-chip">
+              <i data-lucide="pen-line"></i> Exam answer
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ ECOSYSTEM ══════════════ -->
+    <section class="eco-section" id="ecosystem">
+      <div class="eco-header reveal">
+        <span class="eyebrow">The Flow</span>
+        <h2 class="headline">One seamless loop.<br />Content to confidence.</h2>
+        <p class="sub">
+          Every feature feeds the next — because that's how learning actually
+          works.
+        </p>
+      </div>
+      <div class="eco-row reveal">
+        <div class="eco-node">
+          <div class="eco-circle"><i data-lucide="notebook-pen"></i></div>
+          <div class="eco-lbl">Notes</div>
+        </div>
+        <div class="eco-dash"></div>
+        <div class="eco-node">
+          <div class="eco-circle center"><i data-lucide="sparkles"></i></div>
+          <div class="eco-lbl center">AI</div>
+        </div>
+        <div class="eco-dash"></div>
+        <div class="eco-node">
+          <div class="eco-circle"><i data-lucide="layers"></i></div>
+          <div class="eco-lbl">Revision</div>
+        </div>
+        <div class="eco-dash"></div>
+        <div class="eco-node">
+          <div class="eco-circle"><i data-lucide="message-circle"></i></div>
+          <div class="eco-lbl">Doubts</div>
+        </div>
+        <div class="eco-dash"></div>
+        <div class="eco-node">
+          <div class="eco-circle"><i data-lucide="users"></i></div>
+          <div class="eco-lbl">Groups</div>
+        </div>
+        <div class="eco-dash"></div>
+        <div class="eco-node">
+          <div class="eco-circle"><i data-lucide="trophy"></i></div>
+          <div class="eco-lbl">Results</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ WHY ══════════════ -->
+    <section class="why-section">
+      <div class="why-inner">
+        <div class="why-header reveal">
+          <span class="eyebrow">Why It Exists</span>
+          <h2 class="headline">Built for how students<br />actually study.</h2>
+          <p class="sub">Not how productivity gurus think they should.</p>
+        </div>
+        <div class="why-items">
+          <div class="why-item reveal" style="transition-delay: 0s">
+            <div class="why-num">01</div>
+            <div>
+              <div class="why-h">Too many tabs, zero focus</div>
+              <div class="why-b">
+                Notes on Drive. Tasks on Notion. Doubts over WhatsApp. Videos on
+                YouTube. Your attention is spread thin before you've read a
+                single page.
+              </div>
+            </div>
+          </div>
+          <div class="why-item reveal" style="transition-delay: 0.12s">
+            <div class="why-num">02</div>
+            <div>
+              <div class="why-h">Generic tools don't understand students</div>
+              <div class="why-b">
+                Productivity apps weren't designed for exam cycles, subject
+                banks, or the urgency of a 2 AM doubt before a morning paper. We
+                were.
+              </div>
+            </div>
+          </div>
+          <div class="why-item reveal" style="transition-delay: 0.24s">
+            <div class="why-num">03</div>
+            <div>
+              <div class="why-h">So we built one thing that does it all</div>
+              <div class="why-b">
+                Not by cramming features. By designing around how students
+                actually think, plan, and help each other — then making it feel
+                effortless.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ CTA ══════════════ -->
+    <section class="cta-section" id="cta">
+      <h2 class="headline reveal">
+        Everything You Need.<br /><em>Nothing You Don't.</em>
+      </h2>
+      <p class="sub reveal" style="transition-delay: 0.1s">
+        One account. Every tool. Your entire academic life — finally in one
+        place.
+      </p>
+      <div class="cta-pair reveal" style="transition-delay: 0.2s">
+        <a href="#" class="btn-cta" id="googleLogin"
+          >Start Now <i data-lucide="arrow-right"></i
+        ></a>
+        <a href="#features" class="btn-learn" style="color: var(--ink2)"
+          >See all features <i data-lucide="chevron-right"></i
+        ></a>
+      </div>
+    </section>
+
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <footer>
+      <div class="footer-logo">Study<em>Sphere</em></div>
+      <ul class="footer-links">
+        <li><a href="#">Features</a></li>
+        <li><a href="#">For Colleges</a></li>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+      <div class="footer-copy">© 2026 StudySphere</div>
+    </footer>
+  </body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="landingpage.js"></script>
+</html>

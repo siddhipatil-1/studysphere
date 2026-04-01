@@ -1,0 +1,145 @@
+<link rel="stylesheet" href="/features/notes/notes.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<div id="notes-feature-container" class="notes-app">
+  <!-- Header -->
+  <header class="notes-header">
+    <div class="breadcrumb-nav" id="breadcrumb-path">
+      <!-- Breadcrumbs injected here -->
+    </div>
+    <div class="header-actions">
+      <div class="layout-controls">
+        <span class="label">Cols</span>
+        <button class="layout-btn" data-cols="2">2</button>
+        <button class="layout-btn active" data-cols="3">3</button>
+        <button class="layout-btn" data-cols="4">4</button>
+      </div>
+      <button class="primary-btn" id="add-folder-btn">
+        <i data-lucide="folder-plus" class="btn-icon"></i>
+        New Folder
+      </button>
+      <button class="primary-btn" id="add-note-btn" style="display: none">
+        <i data-lucide="file-plus" class="btn-icon"></i>
+        New Note
+      </button>
+    </div>
+  </header>
+
+  <!-- Folders Section -->
+  <section class="folders-section">
+    <h3 class="section-title">Folders</h3>
+    <div class="folders-grid" id="folders-display"></div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- Notes Section -->
+  <section class="notes-section">
+    <div
+      style="display: flex; justify-content: space-between; align-items: center"
+    >
+      <h3 class="section-title">Notes</h3>
+
+      <select
+        id="note-filter"
+        style="
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1.5px solid var(--e8);
+          background: var(--f8);
+          font-family: DM Sans;
+          font-size: 13px;
+          margin-bottom: 15px;
+        "
+      >
+        <option value="all">All</option>
+        <option value="text">Text</option>
+        <option value="image">Image</option>
+        <option value="pdf">PDF</option>
+        <option value="youtube">YouTube</option>
+        <option value="url">Website</option>
+      </select>
+    </div>
+    <div class="notes-grid cols-3" id="notes-display"></div>
+  </section>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <!-- Folder Modal -->
+    <div id="folder-modal" class="modal-content hidden">
+      <h2 id="folder-modal-title">Create Folder</h2>
+      <input type="text" id="folder-name-input" placeholder="Folder name…" />
+      <div class="modal-footer">
+        <button id="cancel-folder" class="secondary-btn">Cancel</button>
+        <button id="save-folder" class="primary-btn">Save</button>
+      </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div id="note-modal" class="modal-content hidden">
+      <h2>Add Note</h2>
+      <select id="note-type-select">
+        <option value="text">Text Note</option>
+        <option value="image">Image</option>
+        <option value="pdf">PDF Document</option>
+        <option value="youtube">YouTube Video</option>
+        <option value="url">Website / URL</option>
+      </select>
+
+      <div id="note-input-fields">
+        <input type="text" id="note-title-input" placeholder="Title…" />
+
+        <div id="text-fields" class="input-group">
+          <textarea
+            id="note-content-input"
+            placeholder="Start writing…"
+          ></textarea>
+        </div>
+
+        <div id="file-fields" class="input-group hidden">
+          <input type="file" id="note-file-input" />
+          <p class="helper-text">
+            Select a file from your device. Images and PDFs are stored locally.
+          </p>
+        </div>
+
+        <div id="youtube-fields" class="input-group hidden">
+          <input
+            type="text"
+            id="note-yt-input"
+            placeholder="Paste YouTube link or ID…"
+          />
+        </div>
+
+        <div id="url-fields" class="input-group hidden">
+          <input
+            type="text"
+            id="note-url-input"
+            placeholder="Paste website URL (https://…)"
+          />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancel-note" class="secondary-btn">Cancel</button>
+        <button id="save-note" class="primary-btn">Add Note</button>
+      </div>
+    </div>
+
+    <!-- Note Viewer Modal -->
+    <div
+      id="view-note-modal"
+      class="modal-content hidden"
+      style="max-width: 700px"
+    >
+      <h2 id="view-note-title"></h2>
+
+      <div id="view-note-body" style="margin-top: 10px"></div>
+
+      <div class="modal-footer">
+        <button id="edit-note-btn" class="secondary-btn">Edit</button>
+        <button id="close-view-note" class="primary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

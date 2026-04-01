@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>StudySphere — Marketplace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="onlineshop.css" />
+    <link rel="icon" href="/assets/favicon.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- EmailJS — used for complaint emails -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="../../js/supabaseClient.js"></script>
+  </head>
+
+  <body>
+    <!-- ═══════════ TOPBAR ═══════════ -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a
+          href="../../dashboard/dashboard.html"
+          class="back-btn"
+          title="Back to Dashboard"
+        >
+          <i data-lucide="arrow-left"></i>
+        </a>
+        <div class="brand">
+          <div class="logo"></div>
+          <div class="name">
+            <span class="brand-name">Study<em>Sphere</em></span>
+            <span class="brand-sub">Marketplace</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <i data-lucide="search"></i>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search by title or author…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="topbar-right">
+        <div id="nav-seller-stats" class="earnings-badge hidden">
+          <i data-lucide="trending-up"></i>
+          <div>
+            <span class="earnings-label">Earnings</span>
+            <span class="earnings-amount"
+              >₹<span id="nav-earnings-amount">0</span></span
+            >
+          </div>
+        </div>
+
+        <span id="user-email-badge" class="user-badge hidden"></span>
+
+        <button id="btn-become-seller" class="btn-outline-sm">
+          <i data-lucide="store"></i><span class="btn-label"> Sell a Book</span>
+        </button>
+
+        <button id="btn-library" class="btn-outline-sm btn-library-toggle">
+          <i data-lucide="book-open"></i><span class="btn-label"> My Library</span>
+          <span id="lib-count" class="count-badge hidden">0</span>
+        </button>
+
+        <button id="btn-cart" class="btn-primary-sm btn-cart-toggle">
+          <i data-lucide="shopping-cart"></i><span class="btn-label"> Cart</span>
+          <span id="cart-count" class="count-badge count-badge--red">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════ FILTER BAR ═══════════ -->
+    <div class="filter-bar">
+      <div class="filter-pills" id="filter-pills">
+        <button class="pill active" data-filter="all">All</button>
+        <button class="pill" data-filter="Digital">
+          <i data-lucide="download"></i> Digital
+        </button>
+        <button class="pill" data-filter="Physical">
+          <i data-lucide="package"></i> Physical
+        </button>
+      </div>
+      <div class="sort-wrap">
+        <label for="sort-select">Sort by</label>
+        <select id="sort-select">
+          <option value="newest">Newest first</option>
+          <option value="price-asc">Price: Low → High</option>
+          <option value="price-desc">Price: High → Low</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ═══════════ PRODUCT GRID ═══════════ -->
+    <main class="shop-main">
+      <div id="product-grid" class="product-grid">
+        <div class="loading-state">
+          <i data-lucide="loader-circle"></i>
+          <p>Loading marketplace…</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ═══════════ CART PANEL (Digital only) ═══════════ -->
+    <div id="cart-panel" class="side-panel" aria-hidden="true">
+      <div class="side-panel-header">
+        <h2><i data-lucide="shopping-cart"></i> Your Cart</h2>
+        <button class="panel-close btn-cart-toggle" aria-label="Close cart">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <p class="library-hint">
+        Only digital books can be added to cart &amp; paid online.
+      </p>
+      <div id="cart-items" class="side-panel-body"></div>
+      <div class="side-panel-footer">
+        <div class="cart-total-row">
+          <span>Total</span>
+          <span>₹<span id="cart-total">0</span></span>
+        </div>
+        <button id="btn-checkout" class="btn-checkout">
+          <i data-lucide="zap"></i> Checkout & Pay
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════ LIBRARY PANEL ═══════════ -->
+    <div id="library-panel" class="side-panel" aria-hidden="true">
+      <div class="side-panel-header">
+        <h2><i data-lucide="book-open"></i> My Library</h2>
+        <button
+          class="panel-close btn-library-toggle"
+          aria-label="Close library"
+        >
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <p class="library-hint">
+        Your purchased books. Digital PDFs download instantly.
+      </p>
+      <div id="library-items" class="side-panel-body">
+        <p class="empty-hint">No purchases yet.</p>
+      </div>
+    </div>
+
+    <!-- Panel backdrop -->
+    <div id="panel-backdrop" class="panel-backdrop"></div>
+
+    <!-- ═══════════ SUCCESS MODAL ═══════════ -->
+    <div id="purchase-modal" class="modal-overlay hidden">
+      <div class="modal-box modal-box--success">
+        <div class="success-icon">
+          <i data-lucide="check-circle"></i>
+        </div>
+        <h2>Payment Successful!</h2>
+        <div id="order-details" class="order-details"></div>
+        <button id="btn-close-purchase" class="btn-primary-full">Done</button>
+      </div>
+    </div>
+
+    <!-- ═══════════ CONTACT SELLER MODAL (Physical books) ═══════════ -->
+    <div id="contact-modal" class="modal-overlay hidden">
+      <div class="modal-box modal-box--contact">
+        <div class="modal-form-header">
+          <h2><i data-lucide="map-pin"></i> Contact Seller</h2>
+          <button id="btn-close-contact" class="panel-close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="contact-details" class="contact-details"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ REPORT MODAL ═══════════ -->
+    <div id="report-modal" class="modal-overlay hidden">
+      <div class="modal-box modal-box--form">
+        <div class="modal-form-header">
+          <h2><i data-lucide="flag"></i> Report a Problem</h2>
+          <button id="btn-close-report" class="panel-close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <p class="report-hint">
+          Use this form if the digital book you purchased was misrepresented —
+          wrong content, corrupt file, or misleading description. We'll review
+          your complaint and get back to you within 48 hours.
+        </p>
+        <div class="form-group" style="margin-bottom: 14px">
+          <label>Book Title</label>
+          <input id="report-book-title" type="text" readonly />
+        </div>
+        <div class="form-group" style="margin-bottom: 14px">
+          <label>Your Email</label>
+          <input id="report-user-email" type="email" readonly />
+        </div>
+        <div class="form-group" style="margin-bottom: 14px">
+          <label>Describe the issue</label>
+          <textarea
+            id="report-message"
+            rows="4"
+            placeholder="What was wrong with the book? Be as specific as possible…"
+          ></textarea>
+        </div>
+        <p id="report-status" class="report-status hidden"></p>
+        <div class="modal-actions">
+          <button id="btn-cancel-report" class="btn-outline-full">
+            Cancel
+          </button>
+          <button id="btn-submit-report" class="btn-primary-full">
+            <i data-lucide="send"></i> Submit Complaint
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ SELLER MODAL ═══════════ -->
+    <div id="seller-modal" class="modal-overlay hidden">
+      <div class="modal-box modal-box--form">
+        <div class="modal-form-header">
+          <h2>List Your Book</h2>
+          <button id="btn-close-seller" class="panel-close" aria-label="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Book Title</label>
+            <input
+              id="seller-title"
+              type="text"
+              placeholder="e.g. Engineering Mathematics Vol. 2"
+            />
+          </div>
+          <div class="form-group">
+            <label>Author Name</label>
+            <input
+              id="seller-author"
+              type="text"
+              placeholder="e.g. R.K. Kanodia"
+            />
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Number</label>
+            <input
+              id="seller-phone"
+              type="tel"
+              placeholder="e.g. 918800XXXXXX"
+            />
+          </div>
+          <div class="form-group">
+            <label>Book Type</label>
+            <select id="seller-type">
+              <option value="Physical">Physical Book (Pickup)</option>
+              <option value="Digital">Digital (PDF Download)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Cover Image</label>
+            <input
+              id="seller-image"
+              type="file"
+              accept="image/*"
+              class="file-input"
+            />
+          </div>
+
+          <!-- Digital only -->
+          <div id="digital-fields" class="form-group hidden">
+            <label>Upload PDF</label>
+            <input
+              id="seller-pdf"
+              type="file"
+              accept=".pdf"
+              class="file-input"
+            />
+          </div>
+
+          <!-- Physical only -->
+          <div id="physical-fields">
+            <div class="form-group" style="margin-bottom: 12px">
+              <label>Locality / Area</label>
+              <input
+                id="seller-locality"
+                type="text"
+                placeholder="e.g. Andheri West, Mumbai"
+              />
+            </div>
+            <div class="form-group">
+              <label>College Name</label>
+              <input
+                id="seller-college"
+                type="text"
+                placeholder="e.g. K.J. Somaiya College"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Price (₹)</label>
+            <input
+              id="seller-price"
+              type="number"
+              placeholder="e.g. 250"
+              min="1"
+            />
+          </div>
+        </div>
+
+        <!-- Payout method (shown only for digital) -->
+        <div id="payout-section" class="payout-section hidden">
+          <h3 class="payout-title">Payout Method</h3>
+          <p class="payout-note">Payment received within 7 working days.</p>
+          <div class="payout-tabs">
+            <button id="tab-bank" class="payout-tab active" data-payout="bank">
+              Bank Transfer
+            </button>
+            <button id="tab-upi" class="payout-tab" data-payout="upi">
+              UPI
+            </button>
+          </div>
+          <div id="payout-bank-fields" class="payout-fields">
+            <input
+              id="seller-acc-1"
+              type="password"
+              placeholder="Account Number (9–18 digits)"
+            />
+            <input
+              id="seller-acc-2"
+              type="text"
+              placeholder="Confirm Account Number"
+            />
+            <input
+              id="seller-ifsc"
+              type="text"
+              placeholder="IFSC Code (11 characters)"
+              class="uppercase-input"
+            />
+          </div>
+          <div id="payout-upi-fields" class="payout-fields hidden">
+            <input
+              id="seller-upi"
+              type="text"
+              placeholder="UPI ID (e.g. name@upi)"
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-cancel-seller" class="btn-outline-full">
+            Cancel
+          </button>
+          <button id="btn-submit-seller" class="btn-primary-full">
+            <i data-lucide="upload"></i> List Book
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="onlineshop.js" type="module"></script>
+  </body>
+</html>

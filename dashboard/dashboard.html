@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.png" />
+    <title>StudySphere — Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="logo"></div>
+          <span class="brand-name">Study<em>Sphere</em></span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" id="home" data-feature="home">
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-label">Home</span>
+          </a>
+          <a href="#" class="nav-item" id="notes" data-feature="notes">
+            <i data-lucide="notebook-pen"></i>
+            <span class="nav-label">Notes Organizer</span>
+          </a>
+          <a
+            href="#"
+            class="nav-item"
+            id="subjectbank"
+            data-feature="subjectbank"
+          >
+            <i data-lucide="library"></i>
+            <span class="nav-label">Subject Bank</span>
+          </a>
+          <a href="#" class="nav-item" id="kanban" data-feature="kanban">
+            <i data-lucide="kanban"></i>
+            <span class="nav-label">Kanban Board</span>
+          </a>
+          <a href="#" class="nav-item" id="doubt" data-feature="doubt">
+            <i data-lucide="message-circle"></i>
+            <span class="nav-label">Doubt Forum</span>
+          </a>
+          <a href="#" class="nav-item" id="group" data-feature="group">
+            <i data-lucide="users"></i>
+            <span class="nav-label">Study Groups</span>
+          </a>
+          <a href="#" class="nav-item" id="studyai" data-feature="studyai">
+            <i data-lucide="sparkles"></i>
+            <span class="nav-label">Study AI</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item" id="logoutBtn">
+            <i data-lucide="log-out"></i>
+            <span class="nav-label">Sign Out</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- ═══════════════════ RIGHT COLUMN ═══════════════════ -->
+      <div class="right-col">
+        <!-- ═══════════════════ TOPBAR ═══════════════════ -->
+        <header class="topbar">
+          <!-- Mobile-only branding — hidden on tablet/desktop via CSS -->
+          <div class="topbar-brand">
+            <div class="logo"></div>
+            <span class="brand-name">Study<em>Sphere</em></span>
+          </div>
+
+          <div class="topbar-left">
+            <!-- Mobile: icon button that expands search bar -->
+            <button
+              class="search-toggle-btn"
+              id="searchToggleBtn"
+              title="Search"
+            >
+              <i data-lucide="search"></i>
+            </button>
+
+            <!-- Search bar: always visible on tablet/desktop, toggled on mobile -->
+            <div class="topbar-search" id="topbarSearch">
+              <i data-lucide="search"></i>
+              <input
+                type="text"
+                placeholder="Search notes, doubts, subjects…"
+              />
+              <!-- Close button visible only inside mobile expanded search -->
+              <button
+                class="search-close-btn"
+                id="searchCloseBtn"
+                title="Close search"
+              >
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <a
+              href="../features/onlineshop/onlineshop.html"
+              target="_blank"
+              class="btn-shop"
+              id="shop"
+            >
+              <i data-lucide="shopping-bag"></i>
+              <span class="btn-shop-label">College Shop</span>
+            </a>
+
+            <div class="notif-wrapper">
+              <button class="icon-btn" title="Notifications">
+                <i data-lucide="bell"></i>
+                <span
+                  class="notif-dot"
+                  id="notif-dot"
+                  style="display: none"
+                ></span>
+              </button>
+              <div class="notif-panel" id="notif-panel">
+                <div class="notif-panel-header">
+                  <span class="notif-panel-title">Notifications</span>
+                  <button
+                    class="notif-clear-btn"
+                    id="notif-clear-btn"
+                    title="Clear all"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <div class="notif-list" id="notif-list"></div>
+              </div>
+            </div>
+
+            <div class="avatar" title="profile"></div>
+          </div>
+        </header>
+
+        <main class="main"></main>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ MOBILE BOTTOM NAV ═══════════════════ -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+      <a href="#" class="mob-nav-item" data-feature="home">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Home</span>
+      </a>
+      <a href="#" class="mob-nav-item" data-feature="notes">
+        <i data-lucide="notebook-pen"></i>
+        <span>Notes</span>
+      </a>
+      <a href="#" class="mob-nav-item" data-feature="kanban">
+        <i data-lucide="kanban"></i>
+        <span>Kanban</span>
+      </a>
+      <a href="#" class="mob-nav-item" data-feature="studyai">
+        <i data-lucide="sparkles"></i>
+        <span>Study AI</span>
+      </a>
+      <button class="mob-nav-item mob-more-btn" id="mobileMoreBtn">
+        <i data-lucide="grid-2x2"></i>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- ═══════════════════ MOBILE DRAWER ═══════════════════ -->
+    <div class="mobile-drawer-overlay" id="mobileDrawerOverlay"></div>
+    <div class="mobile-drawer" id="mobileDrawer">
+      <div class="mobile-drawer-header">
+        <div class="logo"></div>
+        <span class="brand-name">Study<em>Sphere</em></span>
+        <button class="mobile-drawer-close" id="mobileDrawerClose">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <nav class="mobile-drawer-nav">
+        <a href="#" class="nav-item" data-feature="home"
+          ><i data-lucide="layout-dashboard"></i>Home</a
+        >
+        <a href="#" class="nav-item" data-feature="notes"
+          ><i data-lucide="notebook-pen"></i>Notes Organizer</a
+        >
+        <a href="#" class="nav-item" data-feature="subjectbank"
+          ><i data-lucide="library"></i>Subject Bank</a
+        >
+        <a href="#" class="nav-item" data-feature="kanban"
+          ><i data-lucide="kanban"></i>Kanban Board</a
+        >
+        <a href="#" class="nav-item" data-feature="doubt"
+          ><i data-lucide="message-circle"></i>Doubt Forum</a
+        >
+        <a href="#" class="nav-item" data-feature="group"
+          ><i data-lucide="users"></i>Study Groups</a
+        >
+        <a href="#" class="nav-item" data-feature="studyai"
+          ><i data-lucide="sparkles"></i>Study AI</a
+        >
+      </nav>
+      <div class="mobile-drawer-footer">
+        <a href="#" class="nav-item" id="logoutBtnDrawer">
+          <i data-lucide="log-out"></i>Sign Out
+        </a>
+      </div>
+    </div>
+
+    <script>
+      lucide.createIcons();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabaseClient.js"></script>
+    <!-- dashboard.js is type="module" so it runs after DOM is ready -->
+    <script src="dashboard.js" type="module"></script>
+  </body>
+</html>

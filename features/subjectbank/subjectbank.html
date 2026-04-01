@@ -1,0 +1,498 @@
+<link rel="stylesheet" href="/features/subjectbank/subjectbank.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<div id="sb-container">
+  <!-- Breadcrumbs -->
+  <div class="sb-breadcrumbs" id="sb-breadcrumbs">
+    <span class="bc-item bc-current" onclick="sb.navigateToRoot()">
+      <i data-lucide="home"></i> Universities
+    </span>
+  </div>
+
+  <!-- Header -->
+  <div class="sb-header">
+    <div class="sb-header-left">
+      <h1 id="sb-current-title">Subject Bank</h1>
+      <p id="sb-header-sub">Browse by University</p>
+    </div>
+    <div class="sb-header-actions" id="sb-header-actions">
+      <button
+        id="sb-add-btn"
+        class="btn-primary"
+        style="display: none"
+        onclick="sb.toggleForm()"
+      >
+        <i data-lucide="plus"></i> Post Resource
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="sb-filter-bar" id="sb-filter-bar">
+    <button class="btn-filter" onclick="sb.openFilterModal()">
+      <i data-lucide="sliders-horizontal"></i> Filter / Jump To
+    </button>
+  </div>
+
+  <!-- Resource Upload Form (hidden until toggled) -->
+  <div id="sb-form-container" class="add-resource-form">
+    <h3>Contribute a Resource</h3>
+    <div class="form-group">
+      <label>Resource Title</label>
+      <input
+        type="text"
+        id="res-title"
+        placeholder="e.g. Unit 1 Handwritten Notes"
+      />
+    </div>
+    <div class="form-group">
+      <label>Resource Type</label>
+      <select id="res-type" onchange="sb.handleTypeChange()">
+        <option value="text">Written Notes</option>
+        <option value="image">Image (JPG/PNG)</option>
+        <option value="pdf">PDF Document</option>
+        <option value="youtube">YouTube Video</option>
+        <option value="link">Reference Link</option>
+      </select>
+    </div>
+    <div id="field-text" class="form-group">
+      <label>Write your notes</label>
+      <textarea
+        id="res-text-content"
+        rows="6"
+        placeholder="Start typing…"
+      ></textarea>
+    </div>
+    <div id="field-file" class="form-group" style="display: none">
+      <label>Choose File</label>
+      <input type="file" id="res-file-input" accept="image/*,application/pdf" />
+    </div>
+    <div id="field-url" class="form-group" style="display: none">
+      <label>URL</label>
+      <input type="text" id="res-url-input" placeholder="https://…" />
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="sb.saveResource()">
+        <i data-lucide="upload"></i> Upload to Folder
+      </button>
+      <button class="btn-ghost" onclick="sb.toggleForm()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div id="sb-main-grid" class="sb-grid"></div>
+
+  <!-- Request Modal -->
+  <div id="request-modal" class="modal">
+    <div class="modal-content">
+      <h3>Request New Path</h3>
+      <form id="request-form">
+        <input
+          type="text"
+          name="university"
+          placeholder="University (e.g. Harvard)"
+          required
+        />
+        <input
+          type="text"
+          name="course"
+          placeholder="Course (e.g. Law)"
+          required
+        />
+        <input
+          type="text"
+          name="branch"
+          placeholder="Branch/Major (e.g. Criminal Law)"
+          required
+        />
+        <textarea
+          name="details"
+          placeholder="Additional details (Semester, specific subjects...)"
+        ></textarea>
+        <div class="modal-actions">
+          <button type="button" id="close-modal">Cancel</button>
+          <button type="submit">Send Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Resource View Modal -->
+<div id="sb-modal-overlay" style="display: none">
+  <div class="sb-modal-content">
+    <div class="sb-modal-header">
+      <h3 id="modal-title">Resource Preview</h3>
+      <button class="sb-close-modal" onclick="sb.closeModal()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="sb-modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div id="sb-filter-modal" class="filter-modal-overlay">
+  <div class="filter-modal">
+    <div class="filter-modal-header">
+      <div>
+        <h3>
+          <i
+            data-lucide="sliders-horizontal"
+            style="
+              width: 16px;
+              height: 16px;
+              vertical-align: middle;
+              margin-right: 6px;
+              color: var(--rust);
+            "
+          ></i>
+          Filter &amp; Navigate
+        </h3>
+        <p>University is required · all other fields are optional</p>
+      </div>
+      <button
+        class="btn-ghost"
+        style="padding: 6px 10px"
+        onclick="sb.closeFilterModal()"
+      >
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="filter-modal-body">
+      <!-- University -->
+      <div class="filter-section" id="filter-section-university">
+        <div class="filter-section-label">
+          <i data-lucide="building-2"></i> University
+          <span style="color: var(--rust); margin-left: 2px">*</span>
+        </div>
+        <div class="filter-searchable">
+          <span class="filter-search-icon"><i data-lucide="search"></i></span>
+          <input
+            class="filter-search-input"
+            id="filter-search-university"
+            placeholder="Type to search universities…"
+            oninput="sb._filterSearchChanged('university')"
+          />
+        </div>
+        <div class="filter-options" id="filter-options-university"></div>
+        <div id="filter-selected-university"></div>
+      </div>
+      <!-- Course -->
+      <div class="filter-section" id="filter-section-course">
+        <div class="filter-section-label">
+          <i data-lucide="book-open"></i> Course
+          <span class="optional-tag">— optional</span>
+        </div>
+        <div class="filter-searchable">
+          <span class="filter-search-icon"><i data-lucide="search"></i></span>
+          <input
+            class="filter-search-input"
+            id="filter-search-course"
+            placeholder="Type to search courses…"
+            oninput="sb._filterSearchChanged('course')"
+          />
+        </div>
+        <div class="filter-options" id="filter-options-course"></div>
+        <div id="filter-selected-course"></div>
+      </div>
+      <!-- Branch -->
+      <div class="filter-section" id="filter-section-branch">
+        <div class="filter-section-label">
+          <i data-lucide="git-branch"></i> Branch
+          <span class="optional-tag">— optional</span>
+        </div>
+        <div class="filter-searchable">
+          <span class="filter-search-icon"><i data-lucide="search"></i></span>
+          <input
+            class="filter-search-input"
+            id="filter-search-branch"
+            placeholder="Type to search branches…"
+            oninput="sb._filterSearchChanged('branch')"
+          />
+        </div>
+        <div class="filter-options" id="filter-options-branch"></div>
+        <div id="filter-selected-branch"></div>
+      </div>
+      <!-- Semester -->
+      <div class="filter-section" id="filter-section-semester">
+        <div class="filter-section-label">
+          <i data-lucide="calendar"></i> Semester
+          <span class="optional-tag">— optional</span>
+        </div>
+        <div class="filter-searchable">
+          <span class="filter-search-icon"><i data-lucide="search"></i></span>
+          <input
+            class="filter-search-input"
+            id="filter-search-semester"
+            placeholder="e.g. Semester 3…"
+            oninput="sb._filterSearchChanged('semester')"
+          />
+        </div>
+        <div class="filter-options" id="filter-options-semester"></div>
+        <div id="filter-selected-semester"></div>
+      </div>
+      <!-- Subject -->
+      <div class="filter-section" id="filter-section-subject">
+        <div class="filter-section-label">
+          <i data-lucide="file-text"></i> Subject
+          <span class="optional-tag">— optional</span>
+        </div>
+        <div class="filter-searchable">
+          <span class="filter-search-icon"><i data-lucide="search"></i></span>
+          <input
+            class="filter-search-input"
+            id="filter-search-subject"
+            placeholder="Type to search subjects…"
+            oninput="sb._filterSearchChanged('subject')"
+          />
+        </div>
+        <div class="filter-options" id="filter-options-subject"></div>
+        <div id="filter-selected-subject"></div>
+      </div>
+    </div>
+    <div class="filter-modal-footer">
+      <span class="filter-summary" id="filter-modal-summary"
+        >Select a university to begin</span
+      >
+      <div style="display: flex; gap: 8px">
+        <button class="btn-ghost" onclick="sb.resetFilterModal()">
+          <i data-lucide="rotate-ccw"></i> Reset
+        </button>
+        <button class="btn-primary" onclick="sb.applyFilter()">
+          <i data-lucide="arrow-right"></i> Go
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div id="sb-admin-modal" class="admin-modal-overlay">
+  <div class="admin-modal-content">
+    <div class="admin-modal-header">
+      <h2>
+        <i
+          data-lucide="settings-2"
+          style="
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            margin-right: 7px;
+            color: var(--amber);
+          "
+        ></i>
+        Manage Content
+      </h2>
+      <button
+        class="btn-ghost"
+        style="padding: 6px 10px"
+        onclick="sb.closeAdminPanel()"
+      >
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="admin-modal-body">
+      <div class="admin-tabs">
+        <button
+          class="admin-tab active"
+          data-tab="universities"
+          onclick="sb.switchAdminTab('universities')"
+        >
+          Universities
+        </button>
+        <button
+          class="admin-tab"
+          data-tab="courses"
+          onclick="sb.switchAdminTab('courses')"
+        >
+          Courses
+        </button>
+        <button
+          class="admin-tab"
+          data-tab="branches"
+          onclick="sb.switchAdminTab('branches')"
+        >
+          Branches
+        </button>
+        <button
+          class="admin-tab"
+          data-tab="semesters"
+          onclick="sb.switchAdminTab('semesters')"
+        >
+          Semesters
+        </button>
+        <button
+          class="admin-tab"
+          data-tab="subjects"
+          onclick="sb.switchAdminTab('subjects')"
+        >
+          Subjects
+        </button>
+      </div>
+
+      <!-- Universities -->
+      <div class="admin-section active" data-section="universities">
+        <div class="admin-list" id="admin-list-universities"></div>
+        <div class="admin-add-row">
+          <input
+            type="text"
+            id="admin-input-universities"
+            placeholder="Add university…"
+          />
+          <button
+            class="btn-primary"
+            style="padding: 9px 14px"
+            onclick="sb.addAdminItem('universities')"
+          >
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Courses -->
+      <div class="admin-section" data-section="courses">
+        <div class="admin-list" id="admin-list-courses"></div>
+        <div class="admin-add-row">
+          <input
+            type="text"
+            id="admin-input-courses"
+            placeholder="Add course (e.g. B.E)…"
+          />
+          <button
+            class="btn-primary"
+            style="padding: 9px 14px"
+            onclick="sb.addAdminItem('courses')"
+          >
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Branches -->
+      <div class="admin-section" data-section="branches">
+        <div id="admin-branch-sections"></div>
+      </div>
+
+      <!-- Semesters -->
+      <div class="admin-section" data-section="semesters">
+        <div class="admin-list" id="admin-list-semesters"></div>
+        <div class="admin-add-row">
+          <input
+            type="number"
+            id="admin-input-semesters"
+            placeholder="Add semester number…"
+            min="1"
+            max="12"
+          />
+          <button
+            class="btn-primary"
+            style="padding: 9px 14px"
+            onclick="sb.addAdminItem('semesters')"
+          >
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Subjects -->
+      <div class="admin-section" data-section="subjects">
+        <p style="font-size: 12px; color: var(--ink4); margin: 0 0 14px">
+          Select a path below to add or remove subjects for that semester.
+        </p>
+        <div id="admin-subject-path-selector">
+          <div
+            class="admin-add-row"
+            style="flex-wrap: wrap; gap: 8px; margin-bottom: 12px"
+          >
+            <select
+              id="admin-subject-uni"
+              style="
+                flex: 1;
+                padding: 9px 12px;
+                border: 1.5px solid var(--e8);
+                border-radius: 9px;
+                font-family: &quot;DM Sans&quot;, sans-serif;
+                font-size: 13px;
+                background: var(--f8);
+                color: var(--ink);
+                outline: none;
+              "
+              onchange="sb.loadSubjectAdminPath()"
+            >
+              <option value="">— University —</option>
+            </select>
+            <select
+              id="admin-subject-course"
+              style="
+                flex: 1;
+                padding: 9px 12px;
+                border: 1.5px solid var(--e8);
+                border-radius: 9px;
+                font-family: &quot;DM Sans&quot;, sans-serif;
+                font-size: 13px;
+                background: var(--f8);
+                color: var(--ink);
+                outline: none;
+              "
+              onchange="sb.loadSubjectAdminPath()"
+            >
+              <option value="">— Course —</option>
+            </select>
+            <select
+              id="admin-subject-branch"
+              style="
+                flex: 1;
+                padding: 9px 12px;
+                border: 1.5px solid var(--e8);
+                border-radius: 9px;
+                font-family: &quot;DM Sans&quot;, sans-serif;
+                font-size: 13px;
+                background: var(--f8);
+                color: var(--ink);
+                outline: none;
+              "
+              onchange="sb.loadSubjectAdminPath()"
+            >
+              <option value="">— Branch —</option>
+            </select>
+            <select
+              id="admin-subject-sem"
+              style="
+                flex: 1;
+                padding: 9px 12px;
+                border: 1.5px solid var(--e8);
+                border-radius: 9px;
+                font-family: &quot;DM Sans&quot;, sans-serif;
+                font-size: 13px;
+                background: var(--f8);
+                color: var(--ink);
+                outline: none;
+              "
+              onchange="sb.loadSubjectAdminPath()"
+            >
+              <option value="">— Semester —</option>
+            </select>
+          </div>
+        </div>
+        <div id="admin-subject-list-container" style="display: none">
+          <div class="admin-list" id="admin-list-subjects"></div>
+          <div class="admin-add-row">
+            <input
+              type="text"
+              id="admin-input-subjects"
+              placeholder="Add subject…"
+            />
+            <button
+              class="btn-primary"
+              style="padding: 9px 14px"
+              onclick="sb.addSubjectItem()"
+            >
+              <i data-lucide="plus"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,135 @@
+<link rel="stylesheet" href="/features/doubt/doubt.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<div id="forum-root">
+  <!-- View 1: Question List -->
+  <div id="list-view">
+    <div class="forum-header">
+      <div class="header-left">
+        <h1>Doubt Forum</h1>
+        <p>Ask questions and help your peers</p>
+      </div>
+      <div
+        class="header-right"
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 15px;
+        "
+      >
+        <div class="filter-tabs">
+          <button
+            class="tab-btn active"
+            id="sort-recent-btn"
+            onclick="window.sortQuestions('recent')"
+          >
+            Recent
+          </button>
+          <button
+            class="tab-btn"
+            id="sort-top-btn"
+            onclick="window.sortQuestions('top')"
+          >
+            Top Rated
+          </button>
+          <button
+            class="tab-btn"
+            id="sort-unanswered-btn"
+            onclick="window.sortQuestions('unanswered')"
+          >
+            Unanswered
+          </button>
+        </div>
+        <button class="btn-ask" onclick="window.openModal()">
+          <i data-lucide="plus"></i> Ask a Question
+        </button>
+      </div>
+    </div>
+
+    <!-- Drill-down filter panel (populated by JS) -->
+    <div id="filter-panel" class="filter-panel"></div>
+
+    <div class="question-list" id="questions-container">
+      <!-- Questions injected via JS -->
+    </div>
+  </div>
+
+  <!-- View 2: Question Thread -->
+  <div id="thread-view" style="display: none">
+    <div class="thread-container">
+      <div class="back-btn" onclick="window.showListView()">
+        <i data-lucide="arrow-left"></i> Back to Questions
+      </div>
+      <div id="thread-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Ask Question Modal -->
+<div id="askModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2 style="margin-top: 0">Ask a Question</h2>
+
+    <div class="form-group">
+      <label>Title</label>
+      <input
+        type="text"
+        id="q-title"
+        placeholder="e.g. How to solve quadratic equations?"
+      />
+    </div>
+
+    <!-- Cascading selects: Stream → Branch → Subject -->
+    <div class="form-row-3">
+      <div class="form-group">
+        <label>Stream</label>
+        <select id="q-stream" onchange="window.updateBranchOptions()">
+          <option value="">-- Select Stream --</option>
+          <option value="Science">Science</option>
+          <option value="Commerce">Commerce</option>
+          <option value="Arts">Arts</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Branch</label>
+        <select id="q-branch" disabled onchange="window.updateSubjectOptions()">
+          <option value="">-- Select Branch --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <select id="q-subject" disabled>
+          <option value="">-- Select Subject --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea
+        id="q-desc"
+        rows="4"
+        placeholder="Provide details about your doubt..."
+      ></textarea>
+    </div>
+    <div class="form-group">
+      <label>Attachment (Image)</label>
+      <input type="file" id="q-file" accept="image/*" />
+    </div>
+
+    <div
+      style="
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 20px;
+      "
+    >
+      <button class="tab-btn" onclick="window.closeModal()">Cancel</button>
+      <button class="btn-ask" onclick="window.submitQuestion()">
+        Post Question
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,65 @@
+<link rel="stylesheet" href="/features/kanban/kanban.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<div id="kanban-feature-container">
+  <div class="kanban-header">
+    <h2>Project Workspace</h2>
+    <button id="open-folder-modal">
+      <i data-lucide="layout-dashboard" class="btn-icon"></i>
+      New Board
+    </button>
+  </div>
+
+  <div id="folder-list" class="folder-list"></div>
+
+  <div id="active-board" class="board-area">
+    <div class="board-controls">
+      <h3 id="current-folder-name">Select a Board</h3>
+      <button id="add-column-btn">
+        <i data-lucide="columns" class="btn-icon"></i>
+        Add Column
+      </button>
+    </div>
+    <div id="columns-container" class="columns-container"></div>
+  </div>
+
+  <!-- Board / Folder Modal -->
+  <div id="folder-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modal-title">Create New Board</h3>
+      <label for="new-folder-input">Board name</label>
+      <input
+        type="text"
+        id="new-folder-input"
+        placeholder="e.g. Q3 Sprint, Design Backlog…"
+      />
+      <div class="modal-actions">
+        <button id="close-modal">Cancel</button>
+        <button id="confirm-folder" class="primary-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deadline Modal -->
+  <div id="deadline-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Set Deadline</h3>
+      <label for="deadline-date-input">Due date</label>
+      <input type="date" id="deadline-date-input" />
+      <div class="modal-actions">
+        <button
+          id="clear-deadline"
+          style="
+            background: var(--rust-l);
+            color: var(--rust);
+            border: 1.5px solid var(--rust-m);
+          "
+        >
+          <i data-lucide="x-circle" class="btn-icon"></i>Clear
+        </button>
+        <button id="close-deadline-modal">Cancel</button>
+        <button id="confirm-deadline" class="primary-btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>

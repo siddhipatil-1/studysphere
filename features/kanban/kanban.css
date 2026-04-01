@@ -1,0 +1,804 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap");
+
+/* ============================================================
+   ROOT TOKENS — matches your dashboard palette
+   ============================================================ */
+:root {
+  --white: #ffffff;
+  --f8: #f8f5f0;
+  --f2: #f2ece3;
+  --e8: #e8dfd2;
+  --d4: #d4c8b8;
+  --ink: #1c1712;
+  --ink2: #3a3026;
+  --ink3: #7a6e60;
+  --ink4: #b0a698;
+  --rust: #c4572a;
+  --rust-l: #fbeee8;
+  --rust-m: #f0c4b0;
+  --amber: #c4832a;
+  --amber-l: #fdf3e2;
+  --green: #2e6b3e;
+  --green-l: #e8f3ec;
+  /* --sidebar-w: 220px; */
+  --gap: 12px;
+  --r: 14px;
+  --r-lg: 18px;
+
+  /* Deadline colors */
+  --deadline-red-bg: #fbeee8;
+  --deadline-red-border: #c4572a;
+  --deadline-red-badge: #c4572a;
+  --deadline-orange-bg: #fdf3e2;
+  --deadline-orange-border: #c4832a;
+  --deadline-orange-badge: #c4832a;
+  --deadline-green-bg: #e8f3ec;
+  --deadline-green-border: #2e6b3e;
+  --deadline-green-badge: #2e6b3e;
+}
+
+/* ============================================================
+   CONTAINER & LAYOUT
+   ============================================================ */
+#kanban-feature-container {
+  font-family: "DM Sans", sans-serif;
+  color: var(--ink);
+  padding: 28px 32px;
+  height: 100%;
+  background: var(--white);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.kanban-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.kanban-header h2 {
+  font-family: "DM Serif Display", serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+/* ============================================================
+   FOLDER TABS
+   ============================================================ */
+.folder-list {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  border-bottom: 1.5px solid var(--e8);
+  padding-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--d4) transparent;
+}
+
+.folder-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--white);
+  border: 1.5px solid var(--e8);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--ink3);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.folder-tab:hover {
+  border-color: var(--d4);
+  color: var(--ink2);
+  background: var(--f2);
+}
+
+.folder-tab.active {
+  background: var(--ink2);
+  color: var(--white);
+  border-color: var(--ink2);
+}
+
+.folder-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.folder-tab:hover .folder-actions,
+.folder-tab.active .folder-actions {
+  opacity: 1;
+}
+
+.folder-action-btn {
+  background: transparent;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  color: inherit;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+}
+
+.folder-action-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+}
+
+.folder-action-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.folder-tab.active .folder-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================================
+   BOARD CONTROLS
+   ============================================================ */
+.board-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+#current-folder-name {
+  font-family: "DM Serif Display", serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink2);
+  margin: 0;
+}
+
+/* ============================================================
+   BUTTONS — shared base
+   ============================================================ */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: "DM Sans", sans-serif;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    transform 0.1s;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Primary buttons */
+#add-folder-btn,
+#open-folder-modal,
+#add-column-btn {
+  background: var(--rust);
+  color: var(--white);
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+}
+
+#add-folder-btn:hover,
+#open-folder-modal:hover,
+#add-column-btn:hover {
+  background: var(--ink2);
+}
+
+/* Lucide icon sizing inside buttons */
+.btn-icon,
+#open-folder-modal svg,
+#add-column-btn svg,
+#clear-deadline svg,
+#close-deadline-modal svg,
+#confirm-deadline svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+#open-folder-modal,
+#add-column-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#clear-deadline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================================================
+   COLUMNS
+   ============================================================ */
+.columns-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 20px;
+  height: auto;
+  max-height: calc(100vh - 260px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--d4) transparent;
+}
+
+.kanban-column {
+  background: var(--f2);
+  border: 1.5px solid var(--e8);
+  border-radius: var(--r-lg);
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s;
+}
+
+.kanban-column:hover {
+  box-shadow: 0 4px 16px rgba(28, 23, 18, 0.07);
+}
+
+.column-header {
+  padding: 14px 16px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--e8);
+}
+
+.col-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink2);
+  padding: 3px 5px;
+  border-radius: 4px;
+  outline: none;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 11.5px;
+  letter-spacing: 0.8px;
+}
+
+.col-title:focus {
+  background: var(--white);
+  outline: 2px solid var(--rust);
+}
+
+.column-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--e8);
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.col-header-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.del-col {
+  background: transparent;
+  color: var(--ink4);
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.del-col svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+}
+
+.del-col:hover {
+  color: var(--rust);
+  background: var(--rust-l);
+}
+
+/* ============================================================
+   TASK LIST
+   ============================================================ */
+.task-list {
+  padding: 10px 10px 4px;
+  min-height: 120px;
+  flex-grow: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--d4) transparent;
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.kanban-card {
+  background: var(--white);
+  margin-bottom: 9px;
+  padding: 12px 13px;
+  border-radius: 10px;
+  border: 1.5px solid var(--e8);
+  cursor: grab;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+  position: relative;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 3px 10px rgba(28, 23, 18, 0.1);
+  border-color: var(--d4);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.c-text {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  outline: none;
+  word-break: break-word;
+}
+
+.c-text:focus {
+  border-bottom: 1.5px solid var(--rust);
+}
+
+/* Deadline badge */
+.deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+
+.badge-icon,
+.deadline-badge svg {
+  width: 11px;
+  height: 11px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.deadline-badge.red {
+  background: var(--rust-l);
+  color: var(--rust);
+  border: 1px solid var(--rust-m);
+}
+
+.deadline-badge.orange {
+  background: var(--amber-l);
+  color: var(--amber);
+  border: 1px solid #f0d4a8;
+}
+
+.deadline-badge.green {
+  background: var(--green-l);
+  color: var(--green);
+  border: 1px solid #b8d9c2;
+}
+
+.deadline-badge.neutral {
+  background: var(--f2);
+  color: var(--ink3);
+  border: 1px solid var(--e8);
+}
+
+/* Card deadline urgency coloring */
+.kanban-card.deadline-red {
+  background: var(--deadline-red-bg);
+  border-color: var(--rust-m);
+}
+
+.kanban-card.deadline-orange {
+  background: var(--deadline-orange-bg);
+  border-color: #f0d4a8;
+}
+
+.kanban-card.deadline-green {
+  background: var(--deadline-green-bg);
+  border-color: #b8d9c2;
+}
+
+/* Card actions */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--f2);
+}
+
+.card-actions button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  color: var(--ink4);
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--e8);
+}
+
+.card-actions button svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.card-actions button:hover {
+  color: var(--rust);
+  background: var(--rust-l);
+  border-color: var(--rust-m);
+}
+
+.card-actions .set-deadline-btn {
+  color: var(--ink3);
+}
+
+.card-actions .set-deadline-btn:hover {
+  color: var(--amber);
+  background: var(--amber-l);
+  border-color: #f0d4a8;
+}
+
+/* ============================================================
+   ADD TASK AREA
+   ============================================================ */
+.add-task-area {
+  padding: 10px;
+  border-top: 1px solid var(--e8);
+}
+
+.add-task-area textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--e8);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  padding: 9px 10px;
+  resize: none;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  background: var(--white);
+  color: var(--ink);
+  transition: border-color 0.18s;
+}
+
+.add-task-area textarea:focus {
+  outline: none;
+  border-color: var(--rust);
+}
+
+.add-task-area textarea::placeholder {
+  color: var(--ink4);
+}
+
+.add-task-area button {
+  background: var(--ink2);
+  color: var(--white);
+  padding: 7px 12px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 7px;
+}
+
+.add-task-area button:hover {
+  background: var(--rust);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(28, 23, 18, 0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--white);
+  padding: 28px;
+  border-radius: var(--r-lg);
+  width: 340px;
+  box-shadow: 0 8px 32px rgba(28, 23, 18, 0.15);
+  border: 1px solid var(--e8);
+}
+
+.modal-content h3 {
+  font-family: "DM Serif Display", serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 0 0 16px;
+}
+
+.modal-content input,
+.modal-content input[type="date"] {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 6px 0 14px;
+  border: 1.5px solid var(--e8);
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--f8);
+  transition: border-color 0.18s;
+}
+
+.modal-content input:focus {
+  outline: none;
+  border-color: var(--rust);
+  background: var(--white);
+}
+
+.modal-content label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink3);
+  letter-spacing: 0.3px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.modal-actions button {
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+#close-modal,
+#close-deadline-modal {
+  background: var(--f2);
+  color: var(--ink3);
+  border: 1.5px solid var(--e8);
+}
+
+#close-modal:hover,
+#close-deadline-modal:hover {
+  background: var(--e8);
+  color: var(--ink);
+}
+
+.primary-btn,
+#confirm-folder,
+#confirm-deadline {
+  background: var(--rust);
+  color: var(--white);
+  border: none;
+}
+
+.primary-btn:hover,
+#confirm-folder:hover,
+#confirm-deadline:hover {
+  background: var(--ink2);
+}
+
+/* ============================================================
+   DRAGGING STATE
+   ============================================================ */
+.dragging {
+  opacity: 0.35;
+  transform: rotate(1.5deg) scale(1.02);
+  box-shadow: 0 8px 24px rgba(28, 23, 18, 0.15);
+}
+
+/* ============================================================
+   SCROLLBARS (webkit)
+   ============================================================ */
+.columns-container::-webkit-scrollbar,
+.task-list::-webkit-scrollbar,
+.folder-list::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.columns-container::-webkit-scrollbar-thumb,
+.task-list::-webkit-scrollbar-thumb,
+.folder-list::-webkit-scrollbar-thumb {
+  background: var(--d4);
+  border-radius: 4px;
+}
+
+.columns-container::-webkit-scrollbar-track,
+.task-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-board-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink4);
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+.empty-board-state span {
+  font-size: 36px;
+}
+
+/* ============================================================
+   DRAG OVER HIGHLIGHT
+   ============================================================ */
+.task-list.drag-over {
+  background: rgba(196, 87, 42, 0.05);
+  border-radius: 8px;
+  outline: 2px dashed var(--rust-m);
+}
+
+/* ============================================================
+   ADDITIONS — append these to the bottom of kanban.css
+   ============================================================ */
+
+/* Completed card — muted look so it's visually distinct */
+.kanban-card.task-completed {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.kanban-card.task-completed:hover {
+  opacity: 0.85;
+}
+
+/* "Mark Undone" button tinted green when task is done */
+.toggle-done-btn.done {
+  color: var(--green) !important;
+  background: var(--green-l) !important;
+  border-color: #b8d9c2 !important;
+}
+
+/* ============================================================
+   RESPONSIVE GRID BREAKPOINTS
+   ============================================================ */
+
+/* Tablet: up to 1280px → 3 columns */
+@media (max-width: 1280px) {
+  .columns-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile: up to 800px → 2 columns */
+@media (max-width: 800px) {
+  #kanban-feature-container {
+    padding: 16px;
+  }
+
+  .columns-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    max-height: none;
+    height: auto;
+  }
+
+  .kanban-header h2 {
+    font-size: 20px;
+  }
+
+  .col-title {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+  }
+
+  .c-text {
+    font-size: 12.5px;
+  }
+
+  .card-actions button {
+    font-size: 0; /* hide button label text */
+    padding: 5px 7px;
+  }
+
+  .card-actions button svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .deadline-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .add-task-area textarea {
+    font-size: 12px;
+  }
+
+  .add-task-area button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* Small mobile: up to 480px (iPhone SE etc.) → 1 column */
+@media (max-width: 480px) {
+  .columns-container {
+    grid-template-columns: 1fr;
+  }
+
+  .kanban-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #open-folder-modal {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .folder-tab {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}

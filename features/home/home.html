@@ -1,0 +1,91 @@
+<link rel="stylesheet" href="/features/home/home.css" />
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+
+<div class="home-page-root">
+  <!-- ── Top hero: greeting + streak ─────────────────────────── -->
+  <div class="home-hero">
+    <div class="home-greeting-block">
+      <p class="home-date" id="homeDate"></p>
+      <h1 class="home-welcome" id="welcomeText"></h1>
+      <p class="home-affirmation" id="homeAffirmation"></p>
+    </div>
+
+    <div class="home-streak-block" id="homeStreakBlock">
+      <div class="home-streak-top">
+        <svg
+          class="home-streak-icon"
+          viewBox="0 0 20 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M10 0C10 0 4 7 4 13a6 6 0 0012 0c0-2.2-1.1-4.4-2.2-5.8C12.8 9.5 12 11 10 11 10 8.5 10.8 3 10 0z"
+            fill="currentColor"
+          />
+          <ellipse
+            cx="10"
+            cy="17"
+            rx="2.5"
+            ry="2"
+            fill="white"
+            opacity="0.35"
+          />
+        </svg>
+        <div class="home-streak-info">
+          <span class="home-streak-count" id="homeStreakCount">—</span>
+          <span class="home-streak-label">day streak</span>
+        </div>
+      </div>
+      <div class="home-streak-week" id="homeStreakWeek"></div>
+    </div>
+  </div>
+
+  <!-- ── Bottom row: stats + due-soon ────────────────────────── -->
+  <div class="home-bottom-row">
+    <!-- Stats this week -->
+    <div class="home-card home-stats-card">
+      <p class="home-card-label">Your stats this week</p>
+      <div class="home-stats-grid" id="homeStatsGrid">
+        <!-- skeleton tiles shown until JS populates -->
+        <div class="home-stat-tile home-stat-skeleton">
+          <span class="home-stat-value" id="statNotes">—</span>
+          <span class="home-stat-name">notes saved</span>
+        </div>
+        <div class="home-stat-tile home-stat-skeleton">
+          <span class="home-stat-value" id="statTasks">—</span>
+          <span class="home-stat-name">tasks done</span>
+        </div>
+        <div class="home-stat-tile home-stat-skeleton">
+          <span class="home-stat-value" id="statEarnings">—</span>
+          <span class="home-stat-name">earned this week</span>
+        </div>
+        <div class="home-stat-tile home-stat-skeleton">
+          <span class="home-stat-value" id="statDoubts">—</span>
+          <span class="home-stat-name">doubts posted</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Due soon — Kanban -->
+    <div class="home-card home-duesoon-card">
+      <div class="home-card-header">
+        <p class="home-card-label">Due soon</p>
+        <span class="home-duesoon-sub" id="homeDueSoonSub"
+          >across all boards</span
+        >
+      </div>
+      <div class="home-duesoon-list" id="homeDueSoonList">
+        <!-- loading state -->
+        <div class="home-duesoon-loading" id="homeDueSoonLoading">
+          <div class="home-skeleton-task"></div>
+          <div class="home-skeleton-task"></div>
+          <div class="home-skeleton-task"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /.home-page-root -->

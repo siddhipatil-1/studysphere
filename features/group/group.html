@@ -1,0 +1,159 @@
+<link rel="stylesheet" href="/features/group/group.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<div class="finder-container">
+  <!-- Header -->
+  <div class="finder-header">
+    <div class="finder-header-left">
+      <h1>Study Groups</h1>
+      <p>Find peers to study with or create your own group</p>
+    </div>
+    <button class="create-btn" id="createGroupBtn">
+      <i data-lucide="plus"></i> New Group
+    </button>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-bar">
+    <span class="filter-label">Show:</span>
+    <div class="filter-tabs">
+      <button class="tab-btn active" data-filter="all">
+        <i data-lucide="layout-grid"></i> All Groups
+      </button>
+      <button class="tab-btn" data-filter="open">
+        <i data-lucide="door-open"></i> Open
+      </button>
+      <button class="tab-btn" data-filter="mine">
+        <i data-lucide="user"></i> My Groups
+      </button>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="grid" id="cardGrid">
+    <!-- Cards injected by JS -->
+  </div>
+
+  <!-- ── Create / Edit Modal ── -->
+  <div id="createModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Create Study Group</h2>
+        <p id="modalSubtitle">Fill in the details to start a new group.</p>
+      </div>
+
+      <form id="createEntryForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Subject</label>
+            <input
+              type="text"
+              id="inputSubject"
+              required
+              placeholder="e.g. Physics"
+            />
+          </div>
+          <div class="form-group">
+            <label>Group Title</label>
+            <input
+              type="text"
+              id="inputTitle"
+              required
+              placeholder="e.g. Physics JEE Prep"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label
+            >Description <span class="label-optional">(optional)</span></label
+          >
+          <input
+            type="text"
+            id="inputDescription"
+            placeholder="What will you cover? Any prerequisites?"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Schedule / Time</label>
+            <input
+              type="text"
+              id="inputTime"
+              required
+              placeholder="e.g. Mon & Wed, 6 PM"
+            />
+          </div>
+          <div class="form-group">
+            <label>Max Participants</label>
+            <input
+              type="number"
+              id="inputMax"
+              required
+              min="2"
+              max="50"
+              value="5"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Meeting Link</label>
+          <input
+            type="url"
+            id="inputMeetingLink"
+            placeholder="Zoom, Google Meet, etc."
+            required
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" id="closeModalBtn">
+            Cancel
+          </button>
+          <button type="submit" class="btn-submit">Publish Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Live Chat Drawer ── -->
+  <div id="chatDrawer" class="chat-drawer">
+    <div class="chat-drawer-header">
+      <div class="chat-drawer-title">
+        <i data-lucide="message-circle"></i>
+        <span id="chatGroupTitle">Group Chat</span>
+      </div>
+      <button id="closeChatBtn" class="chat-close-btn" aria-label="Close chat">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- Messages area -->
+    <div id="chatMessages" class="chat-messages"></div>
+
+    <!-- Input area -->
+    <form id="chatForm" class="chat-input-area">
+      <input
+        type="text"
+        id="chatInput"
+        class="chat-input"
+        placeholder="Message the group…"
+        autocomplete="off"
+        maxlength="500"
+      />
+      <button type="submit" class="btn-send">
+        <i data-lucide="send"></i>
+      </button>
+    </form>
+  </div>
+
+  <!-- Chat backdrop (click to close) -->
+  <div
+    id="chatBackdrop"
+    class="chat-backdrop"
+    onclick="document.querySelector('#closeChatBtn').click()"
+  ></div>
+</div>
