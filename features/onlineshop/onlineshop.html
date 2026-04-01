@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <title>StudySphere — Marketplace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preload" href="/features/onlineshop/onlineshop.css" as="style" />
+
     <link rel="stylesheet" href="onlineshop.css" />
     <link rel="icon" href="/assets/favicon.png" />
     <link
@@ -66,12 +68,14 @@
         </button>
 
         <button id="btn-library" class="btn-outline-sm btn-library-toggle">
-          <i data-lucide="book-open"></i><span class="btn-label"> My Library</span>
+          <i data-lucide="book-open"></i
+          ><span class="btn-label"> My Library</span>
           <span id="lib-count" class="count-badge hidden">0</span>
         </button>
 
         <button id="btn-cart" class="btn-primary-sm btn-cart-toggle">
-          <i data-lucide="shopping-cart"></i><span class="btn-label"> Cart</span>
+          <i data-lucide="shopping-cart"></i
+          ><span class="btn-label"> Cart</span>
           <span id="cart-count" class="count-badge count-badge--red">0</span>
         </button>
       </div>
