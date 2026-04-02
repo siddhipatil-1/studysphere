@@ -2,12 +2,6 @@
  * group.js — Study Group Finder (Supabase edition)
  *
  * Uses window.supabaseClient (initialised in /js/supabaseClient.js)
- *
- * Tables required:
- *   public.profiles        — already exists  (id, username)
- *   public.study_groups    — run Step 1 SQL
- *   public.group_members   — run Step 2 SQL
- *   public.group_messages  — run Step 3 SQL
  */
 
 // ─────────────────────────────────────────────
@@ -18,7 +12,7 @@ const sb = window.supabaseClient;
 let searchQuery = "";
 
 // ─────────────────────────────────────────────
-//  AUTH  — reads from your existing profiles table
+//  AUTH
 // ─────────────────────────────────────────────
 
 async function getCurrentUser() {
@@ -42,26 +36,57 @@ async function getCurrentUser() {
 
 // ─────────────────────────────────────────────
 //  DB ADAPTER — study_groups + group_members
+//
+//  getGroups() and getGroup() do TWO separate queries instead of a
+//  nested select. The nested-select syntax requires a Supabase foreign-key
+//  relationship to be explicitly declared in the dashboard. If that FK is
+//  missing the join silently returns an empty members array — which is why
+//  groups appear to load but show no members and owner actions break.
+//  Two flat queries avoid that requirement entirely.
 // ─────────────────────────────────────────────
 
 const db = {
   async getGroups() {
-    const { data, error } = await sb
+    const { data: groups, error: gErr } = await sb
       .from("study_groups")
-      .select(`*, members:group_members ( user_id, username, status )`)
+      .select("*")
       .order("created_at", { ascending: false });
-    if (error) return { data: null, error };
-    return { data: (data || []).map(shapeGroup), error: null };
+    if (gErr) return { data: null, error: gErr };
+    if (!groups || groups.length === 0) return { data: [], error: null };
+
+    const groupIds = groups.map((g) => g.id);
+    const { data: members, error: mErr } = await sb
+      .from("group_members")
+      .select("group_id, user_id, username, status")
+      .in("group_id", groupIds);
+    if (mErr) return { data: null, error: mErr };
+
+    return {
+      data: groups.map((g) =>
+        shapeGroup({
+          ...g,
+          members: (members || []).filter((m) => m.group_id === g.id),
+        }),
+      ),
+      error: null,
+    };
   },
 
   async getGroup(id) {
-    const { data, error } = await sb
+    const { data: g, error: gErr } = await sb
       .from("study_groups")
-      .select(`*, members:group_members ( user_id, username, status )`)
+      .select("*")
       .eq("id", id)
       .single();
-    if (error) return { data: null, error };
-    return { data: shapeGroup(data), error: null };
+    if (gErr) return { data: null, error: gErr };
+
+    const { data: members, error: mErr } = await sb
+      .from("group_members")
+      .select("group_id, user_id, username, status")
+      .eq("group_id", id);
+    if (mErr) return { data: null, error: mErr };
+
+    return { data: shapeGroup({ ...g, members: members || [] }), error: null };
   },
 
   async insertGroup({
@@ -150,7 +175,7 @@ const db = {
 };
 
 // ─────────────────────────────────────────────
-//  BROADCAST HELPER
+//  BROADCAST HELPERS
 // ─────────────────────────────────────────────
 
 function broadcastMembersChanged() {
@@ -163,25 +188,16 @@ function broadcastMembersChanged() {
   }
 }
 
-/**
- * Broadcast a targeted notification to a specific user via a
- * personal Supabase Realtime channel keyed by their user ID.
- *
- * FIX: We now reuse a single send channel stored on window._sgNotifSendChannel
- * instead of creating a new channel per call, which was leaking channels
- * when subscribe() never reached SUBSCRIBED status (common on cold starts).
- */
 function broadcastNotifTo(userId, event, payload) {
-  const channelName = `user_notif_${userId}`;
-  // Create a short-lived send channel; clean it up after a safe timeout
-  const ch = sb.channel(channelName);
+  const ch = sb.channel(`user_notif_send_${userId}_${Date.now()}`);
   ch.subscribe((status) => {
     if (status === "SUBSCRIBED") {
       ch.send({ type: "broadcast", event, payload });
     }
-    // Always remove after 3 s regardless of status to prevent leaks
     setTimeout(() => {
-      try { sb.removeChannel(ch); } catch (_) {}
+      try {
+        sb.removeChannel(ch);
+      } catch (_) {}
     }, 3000);
   });
 }
@@ -199,7 +215,6 @@ const Crypto = (() => {
 
   async function deriveKey(groupId) {
     if (keyCache.has(groupId)) return keyCache.get(groupId);
-
     const base = await crypto.subtle.importKey(
       "raw",
       enc.encode(groupId + CHAT_SALT),
@@ -207,7 +222,6 @@ const Crypto = (() => {
       false,
       ["deriveKey"],
     );
-
     const key = await crypto.subtle.deriveKey(
       {
         name: "PBKDF2",
@@ -220,7 +234,6 @@ const Crypto = (() => {
       false,
       ["encrypt", "decrypt"],
     );
-
     keyCache.set(groupId, key);
     return key;
   }
@@ -282,7 +295,6 @@ const chatDb = {
 
   async addMessage(groupId, { username, text, is_system }) {
     const stored = is_system ? text : await Crypto.encrypt(groupId, text);
-
     const { data, error } = await sb
       .from("group_messages")
       .insert({
@@ -294,7 +306,6 @@ const chatDb = {
       .select()
       .single();
     if (error) return { data: null, error };
-
     return { data: { ...data, text }, error: null };
   },
 
@@ -339,18 +350,43 @@ function shapeGroup(g) {
 // ─────────────────────────────────────────────
 
 export async function init() {
-  // ── Guard: only run init logic once per page load ─────────────────────────
-  // If already initialised, just re-render — don't create new channels.
-  if (window.groupRealtimeInitialized) {
-    if (window.groupRender) window.groupRender();
-    return;
-  }
-
   console.log("Group init running");
 
   const container = document.querySelector(".finder-container");
   if (!container) return;
 
+  // ── Tear down ALL channels from any previous init call ────────────────────
+  // When your SPA navigates away and back, init() is called again on a
+  // brand-new DOM. We must destroy old channels first so we can create
+  // fresh ones bound to the new DOM nodes without Supabase complaining.
+  if (window._sgGroupsChannel) {
+    try {
+      sb.removeChannel(window._sgGroupsChannel);
+    } catch (_) {}
+    window._sgGroupsChannel = null;
+  }
+  if (window._sgMembersChannel) {
+    try {
+      sb.removeChannel(window._sgMembersChannel);
+    } catch (_) {}
+    window._sgMembersChannel = null;
+  }
+  if (window._sgPersonalChannel) {
+    try {
+      sb.removeChannel(window._sgPersonalChannel);
+    } catch (_) {}
+    window._sgPersonalChannel = null;
+  }
+  if (window._sgBgChatChannels) {
+    for (const [, ch] of window._sgBgChatChannels) {
+      try {
+        sb.removeChannel(ch);
+      } catch (_) {}
+    }
+  }
+  window._sgBgChatChannels = new Map();
+
+  // ── DOM refs — always queried fresh so we're bound to the new DOM ─────────
   const cardGrid = container.querySelector("#cardGrid");
   const modal = container.querySelector("#createModal");
   const closeModalBtn = container.querySelector("#closeModalBtn");
@@ -365,20 +401,17 @@ export async function init() {
   const chatInput = container.querySelector("#chatInput");
   const closeChatBtn = container.querySelector("#closeChatBtn");
 
+  // ── Local state ───────────────────────────────────────────────────────────
   let currentFilter = "all";
   let currentUser = null;
   let editId = null;
   let activeChatGroupId = null;
   let renderedCount = 0;
   let chatChannel = null;
-  let groupsChannel = null;
-  let membersChannel = null;
 
-  // Background chat channels — one per group the user is a member of.
-  const bgChatChannels = new Map(); // groupId → RealtimeChannel
+  const bgChatChannels = window._sgBgChatChannels;
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-
   currentUser = await getCurrentUser();
   if (!currentUser) {
     cardGrid.innerHTML = `
@@ -392,21 +425,10 @@ export async function init() {
     return;
   }
 
-  // ─────────────────────────────────────────────
-  //  BACKGROUND CHAT LISTENER
-  //
-  //  FIX: The original code called ch.on(...) and then ch.subscribe() as two
-  //  separate statements. Supabase throws:
-  //    "cannot add postgres_changes callbacks after subscribe()"
-  //  if subscribe() has already been called. The fix is to chain them:
-  //    sb.channel(...).on(...).subscribe()
-  //  exactly as we do for chatChannel below.
-  // ─────────────────────────────────────────────
-
+  // ── Background chat listener ───────────────────────────────────────────────
   function ensureBgChatChannel(groupId, groupTitle) {
     if (bgChatChannels.has(groupId)) return;
 
-    // FIX: chain .on() before .subscribe() — never call them separately.
     const ch = sb
       .channel(`bg_chat_${groupId}`)
       .on(
@@ -422,7 +444,6 @@ export async function init() {
           if (row.is_system) return;
           if (row.username === currentUser.username) return;
           if (activeChatGroupId === groupId) return;
-
           if (typeof window.addNotification === "function") {
             window.addNotification({
               source: "group",
@@ -440,20 +461,15 @@ export async function init() {
   function teardownBgChatChannel(groupId) {
     const ch = bgChatChannels.get(groupId);
     if (ch) {
-      try { sb.removeChannel(ch); } catch (_) {}
+      try {
+        sb.removeChannel(ch);
+      } catch (_) {}
       bgChatChannels.delete(groupId);
     }
   }
 
-  // ─────────────────────────────────────────────
-  //  PERSONAL NOTIFICATION CHANNEL
-  //
-  //  FIX: This was being re-created on every init() call because the guard
-  //  at the top was commented out. Now that the guard is restored, this
-  //  only runs once — no more duplicate broadcast listeners.
-  // ─────────────────────────────────────────────
-
-  const personalNotifChannel = sb
+  // ── Personal notification channel ─────────────────────────────────────────
+  window._sgPersonalChannel = sb
     .channel(`user_notif_${currentUser.id}`)
     .on("broadcast", { event: "join_request" }, (payload) => {
       if (typeof window.addNotification !== "function") return;
@@ -467,26 +483,24 @@ export async function init() {
     .on("broadcast", { event: "member_status" }, (payload) => {
       if (typeof window.addNotification !== "function") return;
       const { groupTitle, status } = payload.payload || {};
-      if (status === "approved") {
-        window.addNotification({
-          source: "group",
-          title: "✅ Join Request Approved",
-          message: `You were accepted into "${groupTitle}"`,
-        });
-      } else {
-        window.addNotification({
-          source: "group",
-          title: "❌ Join Request Rejected",
-          message: `You were not accepted into "${groupTitle}"`,
-        });
-      }
+      window.addNotification({
+        source: "group",
+        title:
+          status === "approved"
+            ? "✅ Join Request Approved"
+            : "❌ Join Request Rejected",
+        message:
+          status === "approved"
+            ? `You were accepted into "${groupTitle}"`
+            : `You were not accepted into "${groupTitle}"`,
+      });
     })
     .subscribe();
 
-  // ── Render cards ──────────────────────────────────────────────────────────
-
+  // ── Render ────────────────────────────────────────────────────────────────
   async function render() {
     if (!cardGrid) return;
+
     const { data: groups, error } = await db.getGroups();
     if (error) {
       console.error("getGroups:", error.message);
@@ -501,27 +515,25 @@ export async function init() {
       return;
     }
 
-    let filtered = [...groups];
+    let filtered = [...(groups || [])];
 
-    // 🔍 Search
+    // Search
     if (searchQuery) {
       const q = searchQuery;
       filtered = filtered
-        .filter((g) => {
-          const title = (g.title || "").toLowerCase();
-          const subject = (g.subject || "").toLowerCase();
-          return title.includes(q) || subject.includes(q);
-        })
+        .filter(
+          (g) =>
+            (g.title || "").toLowerCase().includes(q) ||
+            (g.subject || "").toLowerCase().includes(q),
+        )
         .sort((a, b) => {
-          const aTitle = (a.title || "").toLowerCase();
-          const bTitle = (b.title || "").toLowerCase();
-          const aScore = aTitle.includes(q) ? 2 : 1;
-          const bScore = bTitle.includes(q) ? 2 : 1;
+          const aScore = (a.title || "").toLowerCase().includes(q) ? 2 : 1;
+          const bScore = (b.title || "").toLowerCase().includes(q) ? 2 : 1;
           return bScore - aScore;
         });
     }
 
-    // 🎛 Filter
+    // Filter tabs
     if (currentFilter === "mine") {
       filtered = filtered.filter(
         (g) =>
@@ -538,17 +550,15 @@ export async function init() {
         <div class="empty-state">
           <i data-lucide="users"></i>
           <p>No groups here yet.<br>
-            <strong onclick="openCreateModal()">Create the first one!</strong>
+            <strong style="cursor:pointer" onclick="window.openCreateModal()">Create the first one!</strong>
           </p>
         </div>`;
-      // FIX: use requestAnimationFrame so icons render after DOM paint
       requestAnimationFrame(() => {
         if (window.lucide) window.lucide.createIcons();
       });
       return;
     }
 
-    // Track which groups the current user is a member of
     const myGroupIds = new Set();
 
     filtered.forEach((group) => {
@@ -556,7 +566,6 @@ export async function init() {
       const max = group.maxCapacity || 1;
       const progress = Math.min((members / max) * 100, 100);
       const isFull = members >= max;
-
       const isOwner = group.owner_id === currentUser.id;
       const isJoined = group.joinedIds.includes(currentUser.id);
       const isPending = group.pendingIds.includes(currentUser.id);
@@ -590,132 +599,84 @@ export async function init() {
 
       const participantsHtml =
         group.joinedUsers.length > 0
-          ? `
-        <div class="participants-section">
-          <button class="participants-toggle" onclick="toggleParticipants(this)">
-            <i data-lucide="chevron-right"></i>
-            Participants (${members})
-          </button>
-          <div class="participants-list">
-            ${group.joinedUsers
-              .map((uname, i) => {
-                const uid = group.joinedIds[i];
-                return `
-              <div class="participant-row">
-                <span>
-                  ${escapeHtml(uname)}
-                  ${uname === group.owner ? '<span class="owner-badge">Host</span>' : ""}
-                </span>
-                ${
-                  isOwner && uid !== currentUser.id
-                    ? `
-                  <button class="btn-remove"
-                    data-action="remove"
-                    data-group="${group.id}"
-                    data-uid="${uid}">Remove</button>`
-                    : ""
-                }
-              </div>`;
-              })
-              .join("")}
-          </div>
-        </div>`
+          ? `<div class="participants-section">
+            <button class="participants-toggle" onclick="window.toggleParticipants(this)">
+              <i data-lucide="chevron-right"></i> Participants (${members})
+            </button>
+            <div class="participants-list">
+              ${group.joinedUsers
+                .map((uname, i) => {
+                  const uid = group.joinedIds[i];
+                  return `<div class="participant-row">
+                  <span>${escapeHtml(uname)}${uname === group.owner ? ' <span class="owner-badge">Host</span>' : ""}</span>
+                  ${
+                    isOwner && uid !== currentUser.id
+                      ? `<button class="btn-remove" data-action="remove" data-group="${group.id}" data-uid="${uid}">Remove</button>`
+                      : ""
+                  }
+                </div>`;
+                })
+                .join("")}
+            </div>
+          </div>`
           : "";
 
       const pendingHtml =
         isOwner && group.pendingUsers.length > 0
-          ? `
-        <div class="pending-section">
-          <div class="pending-section-title">
-            <i data-lucide="bell"></i> Pending Requests
-          </div>
-          ${group.pendingUsers
-            .map((uname, i) => {
-              const uid = group.pendingIds[i];
-              return `
-            <div class="pending-row">
-              <span>${escapeHtml(uname)}</span>
-              <div class="pending-actions">
-                <button class="btn-approve"
-                  data-action="approve"
-                  data-group="${group.id}"
-                  data-uid="${uid}"
-                  data-uname="${escapeHtml(uname)}"
-                  data-grouptitle="${escapeHtml(group.title)}">Approve</button>
-                <button class="btn-reject"
-                  data-action="reject"
-                  data-group="${group.id}"
-                  data-uid="${uid}"
-                  data-uname="${escapeHtml(uname)}"
-                  data-grouptitle="${escapeHtml(group.title)}">Reject</button>
-              </div>
-            </div>`;
-            })
-            .join("")}
-        </div>`
+          ? `<div class="pending-section">
+            <div class="pending-section-title"><i data-lucide="bell"></i> Pending Requests</div>
+            ${group.pendingUsers
+              .map((uname, i) => {
+                const uid = group.pendingIds[i];
+                return `<div class="pending-row">
+                <span>${escapeHtml(uname)}</span>
+                <div class="pending-actions">
+                  <button class="btn-approve" data-action="approve" data-group="${group.id}" data-uid="${uid}" data-uname="${escapeHtml(uname)}" data-grouptitle="${escapeHtml(group.title)}">Approve</button>
+                  <button class="btn-reject"  data-action="reject"  data-group="${group.id}" data-uid="${uid}" data-uname="${escapeHtml(uname)}" data-grouptitle="${escapeHtml(group.title)}">Reject</button>
+                </div>
+              </div>`;
+              })
+              .join("")}
+          </div>`
           : "";
 
       const meetingRow =
         isMember && group.meetingLink
-          ? `
-        <div class="detail-row">
-          <i data-lucide="video"></i>
-          <a href="${escapeHtml(group.meetingLink)}" target="_blank" rel="noopener">Join Meeting</a>
-        </div>`
+          ? `<div class="detail-row"><i data-lucide="video"></i><a href="${escapeHtml(group.meetingLink)}" target="_blank" rel="noopener">Join Meeting</a></div>`
           : "";
 
       const descRow = group.description
-        ? `
-        <div class="detail-row detail-desc">
-          <i data-lucide="align-left"></i>
-          <span>${escapeHtml(group.description)}</span>
-        </div>`
+        ? `<div class="detail-row detail-desc"><i data-lucide="align-left"></i><span>${escapeHtml(group.description)}</span></div>`
         : "";
 
       const chatBtn = isMember
-        ? `
-        <button class="btn-chat" data-action="chat" data-id="${group.id}" data-title="${escapeHtml(group.title)}">
-          <i data-lucide="message-circle"></i> Chat
-        </button>`
+        ? `<button class="btn-chat" data-action="chat" data-id="${group.id}" data-title="${escapeHtml(group.title)}"><i data-lucide="message-circle"></i> Chat</button>`
         : "";
 
       const ownerActions = isOwner
-        ? `
-        <div class="owner-action-row">
-          <button class="btn-edit" data-action="edit" data-id="${group.id}">
-            <i data-lucide="pencil"></i> Edit
-          </button>
-          <button class="btn-delete" data-action="delete" data-id="${group.id}">
-            <i data-lucide="trash-2"></i> Delete
-          </button>
-        </div>`
+        ? `<div class="owner-action-row">
+            <button class="btn-edit"   data-action="edit"   data-id="${group.id}"><i data-lucide="pencil"></i> Edit</button>
+            <button class="btn-delete" data-action="delete" data-id="${group.id}"><i data-lucide="trash-2"></i> Delete</button>
+          </div>`
         : "";
 
       const leaveBtn =
         isJoined && !isOwner
-          ? `
-        <button class="btn-leave" data-action="leave" data-id="${group.id}">
-          <i data-lucide="log-out"></i> Leave
-        </button>`
+          ? `<button class="btn-leave" data-action="leave" data-id="${group.id}"><i data-lucide="log-out"></i> Leave</button>`
           : "";
 
       const card = document.createElement("div");
       card.className = "group-card";
       card.innerHTML = `
-        <span class="card-subject-pill">
-          <i data-lucide="book-open"></i>
-          ${escapeHtml(group.subject)}
-        </span>
+        <span class="card-subject-pill"><i data-lucide="book-open"></i> ${escapeHtml(group.subject)}</span>
         <h3 class="card-title">${escapeHtml(group.title)}</h3>
         <div class="card-details">
           <div class="detail-row"><i data-lucide="user"></i><span>${escapeHtml(group.owner)}</span></div>
           <div class="detail-row"><i data-lucide="clock"></i><span>${escapeHtml(group.time)}</span></div>
           <div class="detail-row"><i data-lucide="users"></i><span>${members} / ${max} members</span></div>
-          ${descRow}
-          ${meetingRow}
+          ${descRow}${meetingRow}
         </div>
-        ${pendingHtml}
-        ${participantsHtml}
+        ${pendingHtml}${participantsHtml}
         <div class="capacity-row">
           <div class="capacity-label">
             <span>Capacity</span>
@@ -727,26 +688,19 @@ export async function init() {
         </div>
         <div class="card-actions">
           <button class="btn-join" data-action="join" data-id="${group.id}" data-title="${escapeHtml(group.title)}" ${joinDisabled ? "disabled" : ""}>
-            <i data-lucide="${joinIcon}"></i>
-            ${joinLabel}
+            <i data-lucide="${joinIcon}"></i> ${joinLabel}
           </button>
-          ${chatBtn}
-          ${leaveBtn}
-          ${ownerActions}
+          ${chatBtn}${leaveBtn}${ownerActions}
         </div>`;
 
       cardGrid.appendChild(card);
     });
 
-    // Tear down background listeners for groups we're no longer in
+    // Tear down bg listeners for groups we've left
     for (const [gid] of bgChatChannels) {
-      if (!myGroupIds.has(gid)) {
-        teardownBgChatChannel(gid);
-      }
+      if (!myGroupIds.has(gid)) teardownBgChatChannel(gid);
     }
 
-    // FIX: always use requestAnimationFrame for icon rendering —
-    // guarantees Lucide runs after all DOM nodes are painted.
     requestAnimationFrame(() => {
       if (window.lucide) window.lucide.createIcons();
     });
@@ -755,17 +709,14 @@ export async function init() {
   window.groupRender = render;
 
   // ── Card event delegation ─────────────────────────────────────────────────
-
   cardGrid.addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     const action = btn.dataset.action;
 
-    // ── JOIN REQUEST ─────────────────────────────────────────────────────────
     if (action === "join") {
       const groupId = btn.dataset.id;
       const groupTitle = btn.dataset.title || "";
-
       await db.addMember(
         groupId,
         currentUser.id,
@@ -777,7 +728,6 @@ export async function init() {
         text: `${currentUser.username} requested to join.`,
         is_system: true,
       });
-
       const { data: group } = await db.getGroup(groupId);
       if (group && group.owner_id !== currentUser.id) {
         broadcastNotifTo(group.owner_id, "join_request", {
@@ -785,52 +735,42 @@ export async function init() {
           requesterUsername: currentUser.username,
         });
       }
-
       broadcastMembersChanged();
       render();
     }
 
-    // ── APPROVE ──────────────────────────────────────────────────────────────
     if (action === "approve") {
       const groupId = btn.dataset.group;
       const userId = btn.dataset.uid;
       const uname = btn.dataset.uname;
       const groupTitle = btn.dataset.grouptitle || "";
-
       await db.approveMember(groupId, userId);
       await chatDb.addMessage(groupId, {
         username: "System",
         text: `${uname} joined the group. Welcome! 🎉`,
         is_system: true,
       });
-
       broadcastNotifTo(userId, "member_status", {
         groupTitle,
         status: "approved",
       });
-
       broadcastMembersChanged();
       render();
     }
 
-    // ── REJECT ───────────────────────────────────────────────────────────────
     if (action === "reject") {
       const groupId = btn.dataset.group;
       const userId = btn.dataset.uid;
       const groupTitle = btn.dataset.grouptitle || "";
-
       await db.removeMember(groupId, userId);
-
       broadcastNotifTo(userId, "member_status", {
         groupTitle,
         status: "rejected",
       });
-
       broadcastMembersChanged();
       render();
     }
 
-    // ── LEAVE ────────────────────────────────────────────────────────────────
     if (action === "leave") {
       if (!confirm("Leave this group?")) return;
       const id = btn.dataset.id;
@@ -846,7 +786,6 @@ export async function init() {
       render();
     }
 
-    // ── REMOVE ───────────────────────────────────────────────────────────────
     if (action === "remove") {
       const groupId = btn.dataset.group;
       const userId = btn.dataset.uid;
@@ -857,7 +796,6 @@ export async function init() {
       render();
     }
 
-    // ── EDIT ─────────────────────────────────────────────────────────────────
     if (action === "edit") {
       const id = btn.dataset.id;
       const { data: group } = await db.getGroup(id);
@@ -877,7 +815,6 @@ export async function init() {
       modal.classList.add("active");
     }
 
-    // ── DELETE ───────────────────────────────────────────────────────────────
     if (action === "delete") {
       const id = btn.dataset.id;
       const { data: group } = await db.getGroup(id);
@@ -885,16 +822,15 @@ export async function init() {
       if (!confirm(`Delete "${group.title}"? This cannot be undone.`)) return;
       await db.deleteGroup(id);
       if (activeChatGroupId === id) closeChat();
+      render();
     }
 
-    // ── CHAT ─────────────────────────────────────────────────────────────────
     if (action === "chat") {
       openChat(btn.dataset.id, btn.dataset.title);
     }
   });
 
   // ── Form submit ───────────────────────────────────────────────────────────
-
   createEntryForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const groupData = {
@@ -942,7 +878,6 @@ export async function init() {
   });
 
   // ── Filter tabs ───────────────────────────────────────────────────────────
-
   filterTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       filterTabs.forEach((t) => t.classList.remove("active"));
@@ -952,8 +887,7 @@ export async function init() {
     });
   });
 
-  // ── Modal ─────────────────────────────────────────────────────────────────
-
+  // ── Modal open/close ──────────────────────────────────────────────────────
   window.openCreateModal = function () {
     editId = null;
     createEntryForm.reset();
@@ -962,6 +896,7 @@ export async function init() {
       modalSubtitle.textContent = "Fill in the details to start a new group.";
     modal.classList.add("active");
   };
+
   container
     .querySelector("#createGroupBtn")
     .addEventListener("click", window.openCreateModal);
@@ -973,7 +908,6 @@ export async function init() {
   });
 
   // ── Participants toggle ───────────────────────────────────────────────────
-
   window.toggleParticipants = function (btn) {
     const list = btn.nextElementSibling;
     list.classList.toggle("open");
@@ -989,24 +923,20 @@ export async function init() {
     }
   };
 
-  // ── LIVE CHAT ─────────────────────────────────────────────────────────────
-
+  // ── Chat ──────────────────────────────────────────────────────────────────
   async function openChat(groupId, groupTitle) {
-    // Clean up previous chat channel if open
     if (chatChannel) {
-      try { await sb.removeChannel(chatChannel); } catch (_) {}
+      try {
+        await sb.removeChannel(chatChannel);
+      } catch (_) {}
       chatChannel = null;
     }
     activeChatGroupId = groupId;
     chatGroupTitle.textContent = groupTitle;
-
     await loadMessages(groupId);
-
     chatDrawer.classList.add("open");
     chatInput.focus();
 
-    // FIX: chain .on().subscribe() — never split them.
-    // This is the same pattern that caused the bg_chat crash.
     chatChannel = sb
       .channel(`group_chat_${groupId}`)
       .on(
@@ -1037,7 +967,9 @@ export async function init() {
   function closeChat() {
     chatDrawer.classList.remove("open");
     if (chatChannel) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
+      try {
+        sb.removeChannel(chatChannel);
+      } catch (_) {}
       chatChannel = null;
     }
     activeChatGroupId = null;
@@ -1088,7 +1020,6 @@ export async function init() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // Send message — optimistic render
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
@@ -1115,13 +1046,8 @@ export async function init() {
 
   closeChatBtn.addEventListener("click", closeChat);
 
-  // ── Realtime sync — group-level changes ───────────────────────────────────
-  // FIX: The guard flag is now set HERE, after all setup is done,
-  // so a second call to init() at the top returns early and just re-renders.
-  // Previously the flag check was commented out, causing every navigation
-  // to the groups page to create brand-new duplicate channels.
-
-  groupsChannel = sb
+  // ── Realtime — group-level and member changes ─────────────────────────────
+  window._sgGroupsChannel = sb
     .channel("study_groups_global")
     .on(
       "postgres_changes",
@@ -1130,19 +1056,12 @@ export async function init() {
     )
     .subscribe();
 
-  membersChannel = sb
+  window._sgMembersChannel = sb
     .channel("group_activity")
     .on("broadcast", { event: "members_changed" }, () => render())
     .subscribe();
 
-  window._sgMembersChannel = membersChannel;
-
-  // Mark as initialised — must be last so the early-return guard above
-  // doesn't fire before channels and event listeners are wired up.
-  window.groupRealtimeInitialized = true;
-
   // ── Boot ──────────────────────────────────────────────────────────────────
-
   render();
 }
 
@@ -1152,10 +1071,7 @@ export async function init() {
 
 export function search(query) {
   searchQuery = query.toLowerCase().trim();
-
-  if (window.groupRender) {
-    window.groupRender();
-  }
+  if (window.groupRender) window.groupRender();
 }
 
 function escapeHtml(str) {
