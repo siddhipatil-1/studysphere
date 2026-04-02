@@ -189,18 +189,17 @@ function broadcastMembersChanged() {
 }
 
 function broadcastNotifTo(userId, event, payload) {
-  const ch = sb.channel(`user_notif_send_${userId}_${Date.now()}`);
+  const ch = sb.channel(`user_notif_${userId}`);
+
   ch.subscribe((status) => {
     if (status === "SUBSCRIBED") {
-      ch.send({ type: "broadcast", event, payload });
+      ch.send({
+        type: "broadcast",
+        event,
+        payload,
+      });
     }
-    setTimeout(() => {
-      try {
-        sb.removeChannel(ch);
-      } catch (_) {}
-    }, 3000);
-  });
-}
+  })
 
 // ─────────────────────────────────────────────
 //  CRYPTO LAYER  (AES-GCM-256, Web Crypto API)
@@ -388,7 +387,7 @@ export async function init() {
   await safeRemoveChannel(window._sgMembersChannel);
   window._sgMembersChannel = null;
 
-  await safeRemoveChannel(window._sgPersonalChannel);
+  // await safeRemoveChannel(window._sgPersonalChannel);
   window._sgPersonalChannel = null;
 
   if (window._sgBgChatChannels) {
@@ -466,7 +465,9 @@ export async function init() {
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+  console.log("BG chat:", groupId, status);
+});
 
     bgChatChannels.set(groupId, ch);
   }
@@ -481,33 +482,33 @@ export async function init() {
 
   // ── Personal notification channel ─────────────────────────────────────────
   // Session tag keeps this name unique per init() call.
-  window._sgPersonalChannel = sb
-    .channel(`user_notif_${currentUser.id}_${_sessionTag}`)
-    .on("broadcast", { event: "join_request" }, (payload) => {
-      if (typeof window.addNotification !== "function") return;
-      const { groupTitle, requesterUsername } = payload.payload || {};
-      window.addNotification({
-        source: "group",
-        title: "📥 New Join Request",
-        message: `${requesterUsername} wants to join "${groupTitle}"`,
-      });
-    })
-    .on("broadcast", { event: "member_status" }, (payload) => {
-      if (typeof window.addNotification !== "function") return;
-      const { groupTitle, status } = payload.payload || {};
-      window.addNotification({
-        source: "group",
-        title:
-          status === "approved"
-            ? "✅ Join Request Approved"
-            : "❌ Join Request Rejected",
-        message:
-          status === "approved"
-            ? `You were accepted into "${groupTitle}"`
-            : `You were not accepted into "${groupTitle}"`,
-      });
-    })
-    .subscribe();
+  // window._sgPersonalChannel = sb
+  //   .channel(`user_notif_${currentUser.id}_${_sessionTag}`)
+  //   .on("broadcast", { event: "join_request" }, (payload) => {
+  //     if (typeof window.addNotification !== "function") return;
+  //     const { groupTitle, requesterUsername } = payload.payload || {};
+  //     window.addNotification({
+  //       source: "group",
+  //       title: "📥 New Join Request",
+  //       message: `${requesterUsername} wants to join "${groupTitle}"`,
+  //     });
+  //   })
+  //   .on("broadcast", { event: "member_status" }, (payload) => {
+  //     if (typeof window.addNotification !== "function") return;
+  //     const { groupTitle, status } = payload.payload || {};
+  //     window.addNotification({
+  //       source: "group",
+  //       title:
+  //         status === "approved"
+  //           ? "✅ Join Request Approved"
+  //           : "❌ Join Request Rejected",
+  //       message:
+  //         status === "approved"
+  //           ? `You were accepted into "${groupTitle}"`
+  //           : `You were not accepted into "${groupTitle}"`,
+  //     });
+  //   })
+  //   .subscribe();
 
   // ── Render ────────────────────────────────────────────────────────────────
   async function render() {
