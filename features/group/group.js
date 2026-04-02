@@ -344,6 +344,7 @@ function shapeGroup(g) {
 export async function init() {
   if (window.groupRealtimeInitialized) return;
   window.groupRealtimeInitialized = true;
+  console.log("Group init running");
 
   const container = document.querySelector(".finder-container");
   if (!container) return;
