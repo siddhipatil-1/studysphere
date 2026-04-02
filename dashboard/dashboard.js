@@ -24,7 +24,7 @@ window.addEventListener("load", () => {
     const { data, error } = await window.supabaseClient.auth.getUser();
 
     if (error || !data?.user) {
-      window.location.href = "../landingpage/landingpage.html";
+      window.location.href = "/landingpage/";
       return null;
     }
 
@@ -583,7 +583,7 @@ window.addEventListener("load", () => {
   // ===============================
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await window.supabaseClient.auth.signOut();
-    window.location.href = "../landingpage/landingpage.html";
+    window.location.href = "/landingpage/";
   });
 
   // ===============================
