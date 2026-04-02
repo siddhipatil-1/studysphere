@@ -400,38 +400,36 @@ export async function init() {
   // ─────────────────────────────────────────────
 
   function ensureBgChatChannel(groupId, groupTitle) {
-    if (bgChatChannels.has(groupId)) return; // already listening
+    if (bgChatChannels.has(groupId)) return;
 
-    const ch = sb
-      .channel(`bg_chat_${groupId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "group_messages",
-          filter: `group_id=eq.${groupId}`,
-        },
-        async (payload) => {
-          const row = payload.new;
+    const ch = sb.channel(`bg_chat_${groupId}`);
 
-          // Ignore system messages and own messages
-          if (row.is_system) return;
-          if (row.username === currentUser.username) return;
+    ch.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "group_messages",
+        filter: `group_id=eq.${groupId}`,
+      },
+      async (payload) => {
+        const row = payload.new;
 
-          // Only notify when that group's chat drawer is closed
-          if (activeChatGroupId === groupId) return;
+        if (row.is_system) return;
+        if (row.username === currentUser.username) return;
+        if (activeChatGroupId === groupId) return;
 
-          if (typeof window.addNotification === "function") {
-            window.addNotification({
-              source: "group",
-              title: `💬 New message in ${groupTitle}`,
-              message: `${row.username}: [new message]`,
-            });
-          }
-        },
-      )
-      .subscribe();
+        if (typeof window.addNotification === "function") {
+          window.addNotification({
+            source: "group",
+            title: `💬 New message in ${groupTitle}`,
+            message: `${row.username}: [new message]`,
+          });
+        }
+      },
+    );
+
+    ch.subscribe();
 
     bgChatChannels.set(groupId, ch);
   }
@@ -487,6 +485,7 @@ export async function init() {
   // ── Render cards ──────────────────────────────────────────────────────────
 
   async function render() {
+    if (!cardGrid) return;
     const { data: groups, error } = await db.getGroups();
     if (error) {
       console.error("getGroups:", error.message);
@@ -736,7 +735,10 @@ export async function init() {
       }
     }
 
-    if (window.lucide) window.lucide.createIcons();
+    // if (window.lucide) window.lucide.createIcons();
+    setTimeout(() => {
+      if (window.lucide) window.lucide.createIcons();
+    }, 0);
   }
   window.groupRender = render;
 
