@@ -370,6 +370,9 @@ async function loadQuestionsFromDB() {
 // ─────────────────────────────────────────────
 
 function setupRealtime() {
+  if (window.doubtRealtimeInitialized) return;
+  window.doubtRealtimeInitialized = true;
+
   supabase
     .channel("doubt-forum")
 
