@@ -349,6 +349,27 @@ function shapeGroup(g) {
 //  INIT
 // ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+//  CHANNEL TEARDOWN HELPER
+//  Supabase's removeChannel is async. Calling it and immediately
+//  creating a channel with the same name causes the race that produces
+//  "cannot add postgres_changes callbacks after subscribe()".
+//  This helper awaits the unsubscribe so the socket is fully closed
+//  before we move on. Using a unique suffix per-session also ensures
+//  stale channels from previous navigations can never collide.
+// ─────────────────────────────────────────────
+
+async function safeRemoveChannel(ch) {
+  if (!ch) return;
+  try {
+    await sb.removeChannel(ch);
+  } catch (_) {}
+}
+
+// A monotonically-increasing session tag so every init() gets unique channel names.
+// This is the simplest guarantee against name collisions even if removeChannel is slow.
+let _sessionTag = Date.now();
+
 export async function init() {
   console.log("Group init running");
 
@@ -356,32 +377,23 @@ export async function init() {
   if (!container) return;
 
   // ── Tear down ALL channels from any previous init call ────────────────────
-  // When your SPA navigates away and back, init() is called again on a
-  // brand-new DOM. We must destroy old channels first so we can create
-  // fresh ones bound to the new DOM nodes without Supabase complaining.
-  if (window._sgGroupsChannel) {
-    try {
-      sb.removeChannel(window._sgGroupsChannel);
-    } catch (_) {}
-    window._sgGroupsChannel = null;
-  }
-  if (window._sgMembersChannel) {
-    try {
-      sb.removeChannel(window._sgMembersChannel);
-    } catch (_) {}
-    window._sgMembersChannel = null;
-  }
-  if (window._sgPersonalChannel) {
-    try {
-      sb.removeChannel(window._sgPersonalChannel);
-    } catch (_) {}
-    window._sgPersonalChannel = null;
-  }
+  // We AWAIT each removal so Supabase fully closes the socket before we open
+  // new ones. We also bump _sessionTag so new channel names are always unique,
+  // giving us a belt-and-suspenders guarantee against stale-name collisions.
+  _sessionTag = Date.now();
+
+  await safeRemoveChannel(window._sgGroupsChannel);
+  window._sgGroupsChannel = null;
+
+  await safeRemoveChannel(window._sgMembersChannel);
+  window._sgMembersChannel = null;
+
+  await safeRemoveChannel(window._sgPersonalChannel);
+  window._sgPersonalChannel = null;
+
   if (window._sgBgChatChannels) {
     for (const [, ch] of window._sgBgChatChannels) {
-      try {
-        sb.removeChannel(ch);
-      } catch (_) {}
+      await safeRemoveChannel(ch);
     }
   }
   window._sgBgChatChannels = new Map();
@@ -429,8 +441,9 @@ export async function init() {
   function ensureBgChatChannel(groupId, groupTitle) {
     if (bgChatChannels.has(groupId)) return;
 
+    // Include _sessionTag in the name so this channel is unique per init().
     const ch = sb
-      .channel(`bg_chat_${groupId}`)
+      .channel(`bg_chat_${groupId}_${_sessionTag}`)
       .on(
         "postgres_changes",
         {
@@ -461,16 +474,15 @@ export async function init() {
   function teardownBgChatChannel(groupId) {
     const ch = bgChatChannels.get(groupId);
     if (ch) {
-      try {
-        sb.removeChannel(ch);
-      } catch (_) {}
+      safeRemoveChannel(ch); // fire-and-forget is fine for bg channels
       bgChatChannels.delete(groupId);
     }
   }
 
   // ── Personal notification channel ─────────────────────────────────────────
+  // Session tag keeps this name unique per init() call.
   window._sgPersonalChannel = sb
-    .channel(`user_notif_${currentUser.id}`)
+    .channel(`user_notif_${currentUser.id}_${_sessionTag}`)
     .on("broadcast", { event: "join_request" }, (payload) => {
       if (typeof window.addNotification !== "function") return;
       const { groupTitle, requesterUsername } = payload.payload || {};
@@ -926,9 +938,7 @@ export async function init() {
   // ── Chat ──────────────────────────────────────────────────────────────────
   async function openChat(groupId, groupTitle) {
     if (chatChannel) {
-      try {
-        await sb.removeChannel(chatChannel);
-      } catch (_) {}
+      await safeRemoveChannel(chatChannel);
       chatChannel = null;
     }
     activeChatGroupId = groupId;
@@ -938,7 +948,7 @@ export async function init() {
     chatInput.focus();
 
     chatChannel = sb
-      .channel(`group_chat_${groupId}`)
+      .channel(`group_chat_${groupId}_${_sessionTag}`)
       .on(
         "postgres_changes",
         {
@@ -967,9 +977,7 @@ export async function init() {
   function closeChat() {
     chatDrawer.classList.remove("open");
     if (chatChannel) {
-      try {
-        sb.removeChannel(chatChannel);
-      } catch (_) {}
+      safeRemoveChannel(chatChannel); // fire-and-forget is fine here
       chatChannel = null;
     }
     activeChatGroupId = null;
@@ -1047,8 +1055,11 @@ export async function init() {
   closeChatBtn.addEventListener("click", closeChat);
 
   // ── Realtime — group-level and member changes ─────────────────────────────
+  // Channel names include _sessionTag so they are always unique per init().
+  // This prevents "cannot add postgres_changes callbacks after subscribe()"
+  // when the previous session's channel hasn't fully closed yet.
   window._sgGroupsChannel = sb
-    .channel("study_groups_global")
+    .channel(`study_groups_global_${_sessionTag}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "study_groups" },
@@ -1057,7 +1068,7 @@ export async function init() {
     .subscribe();
 
   window._sgMembersChannel = sb
-    .channel("group_activity")
+    .channel(`group_activity_${_sessionTag}`)
     .on("broadcast", { event: "members_changed" }, () => render())
     .subscribe();
 
