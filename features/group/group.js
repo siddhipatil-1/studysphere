@@ -342,8 +342,8 @@ function shapeGroup(g) {
 // ─────────────────────────────────────────────
 
 export async function init() {
-  if (window.groupRealtimeInitialized) return;
-  window.groupRealtimeInitialized = true;
+  // if (window.groupRealtimeInitialized) return;
+  // window.groupRealtimeInitialized = true;
   console.log("Group init running");
 
   const container = document.querySelector(".finder-container");
@@ -1103,22 +1103,25 @@ export async function init() {
   // ── Cross-browser Realtime sync ───────────────────────────────────────────
 
   // Layer 1: group-level changes
-  groupsChannel = sb
-    .channel("study_groups_global")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "study_groups" },
-      () => render(),
-    )
-    .subscribe();
+  if (!window.groupRealtimeInitialized) {
+    window.groupRealtimeInitialized = true;
+    groupsChannel = sb
+      .channel("study_groups_global")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "study_groups" },
+        () => render(),
+      )
+      .subscribe();
 
-  // Layer 2: broadcast channel — all member actions send + receive here
-  membersChannel = sb
-    .channel("group_activity")
-    .on("broadcast", { event: "members_changed" }, () => render())
-    .subscribe();
+    // Layer 2: broadcast channel — all member actions send + receive here
+    membersChannel = sb
+      .channel("group_activity")
+      .on("broadcast", { event: "members_changed" }, () => render())
+      .subscribe();
 
-  window._sgMembersChannel = membersChannel;
+    window._sgMembersChannel = membersChannel;
+  }
 
   // ── Boot ──────────────────────────────────────────────────────────────────
 
