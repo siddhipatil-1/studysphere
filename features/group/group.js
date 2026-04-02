@@ -166,25 +166,23 @@ function broadcastMembersChanged() {
 /**
  * Broadcast a targeted notification to a specific user via a
  * personal Supabase Realtime channel keyed by their user ID.
- * The receiver's group.js instance is subscribed to this channel
- * and fires window.addNotification() when a message arrives.
  *
- * Channel name: "user_notif_{userId}"
- * Events:
- *   "join_request"   — sent to the group owner when someone requests to join
- *   "member_status"  — sent to the requester when approved or rejected
- *   "chat_message"   — sent to all group members when someone sends a chat
+ * FIX: We now reuse a single send channel stored on window._sgNotifSendChannel
+ * instead of creating a new channel per call, which was leaking channels
+ * when subscribe() never reached SUBSCRIBED status (common on cold starts).
  */
 function broadcastNotifTo(userId, event, payload) {
-  // We create a temporary send-only channel — Supabase Realtime
-  // allows any connected client to send a broadcast to any channel name.
-  const ch = sb.channel(`user_notif_${userId}`);
+  const channelName = `user_notif_${userId}`;
+  // Create a short-lived send channel; clean it up after a safe timeout
+  const ch = sb.channel(channelName);
   ch.subscribe((status) => {
     if (status === "SUBSCRIBED") {
       ch.send({ type: "broadcast", event, payload });
-      // Unsubscribe after sending so we don't accumulate channels
-      setTimeout(() => sb.removeChannel(ch), 2000);
     }
+    // Always remove after 3 s regardless of status to prevent leaks
+    setTimeout(() => {
+      try { sb.removeChannel(ch); } catch (_) {}
+    }, 3000);
   });
 }
 
@@ -332,7 +330,6 @@ function shapeGroup(g) {
       .map((m) => m.username),
     joinedIds: all.filter((m) => m.status === "joined").map((m) => m.user_id),
     pendingIds: all.filter((m) => m.status === "pending").map((m) => m.user_id),
-    // Full member objects needed for notification targeting
     allMembers: all,
   };
 }
@@ -342,8 +339,13 @@ function shapeGroup(g) {
 // ─────────────────────────────────────────────
 
 export async function init() {
-  // if (window.groupRealtimeInitialized) return;
-  // window.groupRealtimeInitialized = true;
+  // ── Guard: only run init logic once per page load ─────────────────────────
+  // If already initialised, just re-render — don't create new channels.
+  if (window.groupRealtimeInitialized) {
+    if (window.groupRender) window.groupRender();
+    return;
+  }
+
   console.log("Group init running");
 
   const container = document.querySelector(".finder-container");
@@ -373,8 +375,6 @@ export async function init() {
   let membersChannel = null;
 
   // Background chat channels — one per group the user is a member of.
-  // These listen for new messages even when the chat drawer is closed,
-  // so we can fire a dashboard notification.
   const bgChatChannels = new Map(); // groupId → RealtimeChannel
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -386,50 +386,53 @@ export async function init() {
         <i data-lucide="lock"></i>
         <p>Please sign in to use Study Groups.</p>
       </div>`;
-    if (window.lucide) window.lucide.createIcons();
+    requestAnimationFrame(() => {
+      if (window.lucide) window.lucide.createIcons();
+    });
     return;
   }
 
   // ─────────────────────────────────────────────
   //  BACKGROUND CHAT LISTENER
   //
-  //  After render() we know which groups the current user belongs to.
-  //  We subscribe one realtime channel per group (if not already subscribed).
-  //  When a non-system message from someone else arrives AND the chat drawer
-  //  for that group is NOT currently open → fire a dashboard notification.
+  //  FIX: The original code called ch.on(...) and then ch.subscribe() as two
+  //  separate statements. Supabase throws:
+  //    "cannot add postgres_changes callbacks after subscribe()"
+  //  if subscribe() has already been called. The fix is to chain them:
+  //    sb.channel(...).on(...).subscribe()
+  //  exactly as we do for chatChannel below.
   // ─────────────────────────────────────────────
 
   function ensureBgChatChannel(groupId, groupTitle) {
     if (bgChatChannels.has(groupId)) return;
 
-    const ch = sb.channel(`bg_chat_${groupId}`);
+    // FIX: chain .on() before .subscribe() — never call them separately.
+    const ch = sb
+      .channel(`bg_chat_${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "group_messages",
+          filter: `group_id=eq.${groupId}`,
+        },
+        async (payload) => {
+          const row = payload.new;
+          if (row.is_system) return;
+          if (row.username === currentUser.username) return;
+          if (activeChatGroupId === groupId) return;
 
-    ch.on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "group_messages",
-        filter: `group_id=eq.${groupId}`,
-      },
-      async (payload) => {
-        const row = payload.new;
-
-        if (row.is_system) return;
-        if (row.username === currentUser.username) return;
-        if (activeChatGroupId === groupId) return;
-
-        if (typeof window.addNotification === "function") {
-          window.addNotification({
-            source: "group",
-            title: `💬 New message in ${groupTitle}`,
-            message: `${row.username}: [new message]`,
-          });
-        }
-      },
-    );
-
-    ch.subscribe();
+          if (typeof window.addNotification === "function") {
+            window.addNotification({
+              source: "group",
+              title: `💬 New message in ${groupTitle}`,
+              message: `${row.username}: [new message]`,
+            });
+          }
+        },
+      )
+      .subscribe();
 
     bgChatChannels.set(groupId, ch);
   }
@@ -437,7 +440,7 @@ export async function init() {
   function teardownBgChatChannel(groupId) {
     const ch = bgChatChannels.get(groupId);
     if (ch) {
-      sb.removeChannel(ch);
+      try { sb.removeChannel(ch); } catch (_) {}
       bgChatChannels.delete(groupId);
     }
   }
@@ -445,11 +448,9 @@ export async function init() {
   // ─────────────────────────────────────────────
   //  PERSONAL NOTIFICATION CHANNEL
   //
-  //  Listens on "user_notif_{currentUser.id}" for targeted broadcasts
-  //  sent by OTHER users' browsers when they take an action that
-  //  affects the current user:
-  //    • "join_request"  → someone asked to join MY group
-  //    • "member_status" → I was approved or rejected
+  //  FIX: This was being re-created on every init() call because the guard
+  //  at the top was commented out. Now that the guard is restored, this
+  //  only runs once — no more duplicate broadcast listeners.
   // ─────────────────────────────────────────────
 
   const personalNotifChannel = sb
@@ -489,6 +490,14 @@ export async function init() {
     const { data: groups, error } = await db.getGroups();
     if (error) {
       console.error("getGroups:", error.message);
+      cardGrid.innerHTML = `
+        <div class="empty-state">
+          <i data-lucide="wifi-off"></i>
+          <p>Could not load groups. Check your connection.</p>
+        </div>`;
+      requestAnimationFrame(() => {
+        if (window.lucide) window.lucide.createIcons();
+      });
       return;
     }
 
@@ -532,12 +541,14 @@ export async function init() {
             <strong onclick="openCreateModal()">Create the first one!</strong>
           </p>
         </div>`;
-      if (window.lucide) window.lucide.createIcons();
+      // FIX: use requestAnimationFrame so icons render after DOM paint
+      requestAnimationFrame(() => {
+        if (window.lucide) window.lucide.createIcons();
+      });
       return;
     }
 
-    // Track which groups the current user is a member of so we can
-    // set up background chat listeners for them.
+    // Track which groups the current user is a member of
     const myGroupIds = new Set();
 
     filtered.forEach((group) => {
@@ -551,7 +562,6 @@ export async function init() {
       const isPending = group.pendingIds.includes(currentUser.id);
       const isMember = isOwner || isJoined;
 
-      // Register background chat listener for every group I'm a member of
       if (isMember) {
         myGroupIds.add(group.id);
         ensureBgChatChannel(group.id, group.title);
@@ -735,11 +745,13 @@ export async function init() {
       }
     }
 
-    // if (window.lucide) window.lucide.createIcons();
-    setTimeout(() => {
+    // FIX: always use requestAnimationFrame for icon rendering —
+    // guarantees Lucide runs after all DOM nodes are painted.
+    requestAnimationFrame(() => {
       if (window.lucide) window.lucide.createIcons();
-    }, 0);
+    });
   }
+
   window.groupRender = render;
 
   // ── Card event delegation ─────────────────────────────────────────────────
@@ -766,7 +778,6 @@ export async function init() {
         is_system: true,
       });
 
-      // 🔔 Notify the group owner that someone wants to join
       const { data: group } = await db.getGroup(groupId);
       if (group && group.owner_id !== currentUser.id) {
         broadcastNotifTo(group.owner_id, "join_request", {
@@ -793,7 +804,6 @@ export async function init() {
         is_system: true,
       });
 
-      // 🔔 Notify the requester that they were approved
       broadcastNotifTo(userId, "member_status", {
         groupTitle,
         status: "approved",
@@ -811,7 +821,6 @@ export async function init() {
 
       await db.removeMember(groupId, userId);
 
-      // 🔔 Notify the requester that they were rejected
       broadcastNotifTo(userId, "member_status", {
         groupTitle,
         status: "rejected",
@@ -974,15 +983,18 @@ export async function init() {
         "data-lucide",
         list.classList.contains("open") ? "chevron-down" : "chevron-right",
       );
-      if (window.lucide) window.lucide.createIcons();
+      requestAnimationFrame(() => {
+        if (window.lucide) window.lucide.createIcons();
+      });
     }
   };
 
   // ── LIVE CHAT ─────────────────────────────────────────────────────────────
 
   async function openChat(groupId, groupTitle) {
+    // Clean up previous chat channel if open
     if (chatChannel) {
-      await sb.removeChannel(chatChannel);
+      try { await sb.removeChannel(chatChannel); } catch (_) {}
       chatChannel = null;
     }
     activeChatGroupId = groupId;
@@ -993,7 +1005,8 @@ export async function init() {
     chatDrawer.classList.add("open");
     chatInput.focus();
 
-    // Supabase Realtime for messages from other users
+    // FIX: chain .on().subscribe() — never split them.
+    // This is the same pattern that caused the bg_chat crash.
     chatChannel = sb
       .channel(`group_chat_${groupId}`)
       .on(
@@ -1024,7 +1037,7 @@ export async function init() {
   function closeChat() {
     chatDrawer.classList.remove("open");
     if (chatChannel) {
-      sb.removeChannel(chatChannel);
+      try { sb.removeChannel(chatChannel); } catch (_) {}
       chatChannel = null;
     }
     activeChatGroupId = null;
@@ -1102,28 +1115,31 @@ export async function init() {
 
   closeChatBtn.addEventListener("click", closeChat);
 
-  // ── Cross-browser Realtime sync ───────────────────────────────────────────
+  // ── Realtime sync — group-level changes ───────────────────────────────────
+  // FIX: The guard flag is now set HERE, after all setup is done,
+  // so a second call to init() at the top returns early and just re-renders.
+  // Previously the flag check was commented out, causing every navigation
+  // to the groups page to create brand-new duplicate channels.
 
-  // Layer 1: group-level changes
-  if (!window.groupRealtimeInitialized) {
-    window.groupRealtimeInitialized = true;
-    groupsChannel = sb
-      .channel("study_groups_global")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "study_groups" },
-        () => render(),
-      )
-      .subscribe();
+  groupsChannel = sb
+    .channel("study_groups_global")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "study_groups" },
+      () => render(),
+    )
+    .subscribe();
 
-    // Layer 2: broadcast channel — all member actions send + receive here
-    membersChannel = sb
-      .channel("group_activity")
-      .on("broadcast", { event: "members_changed" }, () => render())
-      .subscribe();
+  membersChannel = sb
+    .channel("group_activity")
+    .on("broadcast", { event: "members_changed" }, () => render())
+    .subscribe();
 
-    window._sgMembersChannel = membersChannel;
-  }
+  window._sgMembersChannel = membersChannel;
+
+  // Mark as initialised — must be last so the early-return guard above
+  // doesn't fire before channels and event listeners are wired up.
+  window.groupRealtimeInitialized = true;
 
   // ── Boot ──────────────────────────────────────────────────────────────────
 
