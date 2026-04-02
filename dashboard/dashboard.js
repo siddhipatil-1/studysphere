@@ -211,8 +211,8 @@ window.addEventListener("load", () => {
         return;
       }
 
-      const htmlPath = `../features/${feature}/${feature}.html`;
-      const jsPath = `../features/${feature}/${feature}.js`;
+      const htmlPath = `/features/${feature}/${feature}.html`;
+      const jsPath = `/features/${feature}/${feature}.js`;
 
       const res = await fetch(htmlPath);
       if (!res.ok) throw new Error("HTML not found");
