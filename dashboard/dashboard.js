@@ -583,7 +583,7 @@ window.addEventListener("load", () => {
   // ===============================
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await window.supabaseClient.auth.signOut();
-    window.location.href = "/landingpage/";
+    window.location.href = "/";
   });
 
   // ===============================

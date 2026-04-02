@@ -1,6 +1,0 @@
-{
-  "routes": [
-    { "src": "^/landingpage/?$", "dest": "/landingpage/landingpage.html" },
-    { "src": "^/dashboard/?$", "dest": "/dashboard/dashboard.html" }
-  ]
-}
