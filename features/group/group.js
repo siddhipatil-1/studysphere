@@ -199,7 +199,8 @@ function broadcastNotifTo(userId, event, payload) {
         payload,
       });
     }
-  })
+  });
+}
 
 // ─────────────────────────────────────────────
 //  CRYPTO LAYER  (AES-GCM-256, Web Crypto API)
@@ -466,8 +467,8 @@ export async function init() {
         },
       )
       .subscribe((status) => {
-  console.log("BG chat:", groupId, status);
-});
+        console.log("BG chat:", groupId, status);
+      });
 
     bgChatChannels.set(groupId, ch);
   }
