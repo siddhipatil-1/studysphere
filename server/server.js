@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const Anthropic = require("@anthropic-ai/sdk");
+const fetch = require("node-fetch");
 // const multer = require("multer");
 // const fs = require("fs");
 // const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -15,10 +15,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const anthropic = new Anthropic({
-  apiKey: process.env.CLAUDE_API_KEY,
-});
-
 // Initialize Gemini and the File Manager
 // const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
@@ -27,8 +23,6 @@ const anthropic = new Anthropic({
 app.post("/ask-ai", async (req, res) => {
   try {
     const { prompt, context } = req.body;
-
-    console.log("AI Request:", prompt);
 
     const fullPrompt = `
 You are a helpful, professional AI Study Assistant.
@@ -41,26 +35,41 @@ ${prompt}
 Give a clear, structured, easy-to-understand answer.
 `;
 
-    const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 800,
-      messages: [
-        {
-          role: "user",
-          content: fullPrompt,
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
         },
-      ],
-    });
+        body: JSON.stringify({
+          model: "mistralai/mistral-7b-instruct",
+          messages: [
+            {
+              role: "user",
+              content: fullPrompt,
+            },
+          ],
+        }),
+      },
+    );
 
-    const text = response.content[0].text;
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenRouter Error:", data);
+      return res.status(500).json({ error: "AI failed" });
+    }
+
+    const text = data.choices?.[0]?.message?.content || "No response";
 
     res.json({ text });
   } catch (error) {
-    console.error("Claude Error:", error);
-    res.status(500).json({ error: "AI failed" });
+    console.error("Server Error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
