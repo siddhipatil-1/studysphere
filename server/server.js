@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const Anthropic = require("@anthropic-ai/sdk");
 // const multer = require("multer");
 // const fs = require("fs");
 // const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -14,6 +15,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY,
+});
+
 // Initialize Gemini and the File Manager
 // const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
@@ -23,20 +28,36 @@ app.post("/ask-ai", async (req, res) => {
   try {
     const { prompt, context } = req.body;
 
-    console.log("Incoming request:", prompt);
+    console.log("AI Request:", prompt);
 
     const fullPrompt = `
-NOTES:
-${context || "None"}
+You are a helpful, professional AI Study Assistant.
 
-QUESTION:
+${context ? "STUDENT NOTES:\n" + context : ""}
+
+USER QUESTION:
 ${prompt}
+
+Give a clear, structured, easy-to-understand answer.
 `;
 
-    res.json({ text: "Server working. Claude not connected yet." });
+    const response = await anthropic.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 800,
+      messages: [
+        {
+          role: "user",
+          content: fullPrompt,
+        },
+      ],
+    });
+
+    const text = response.content[0].text;
+
+    res.json({ text });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Claude Error:", error);
+    res.status(500).json({ error: "AI failed" });
   }
 });
 
