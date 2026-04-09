@@ -51,7 +51,10 @@ app.post("/ask-ai", async (req, res) => {
     const { prompt, context, fileUri, fileMimeType } = req.body;
     console.log("AI Request received for action:", prompt);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-1.5-flash" },
+      { apiVersion: "v1" }, // Force the stable v1 endpoint
+    );
 
     let fullPrompt = `You are a helpful, professional AI Study Assistant.\n\n`;
     if (context && context.trim() !== "") {
