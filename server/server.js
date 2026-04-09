@@ -44,7 +44,8 @@ Give a clear, structured, easy-to-understand answer.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistralai/mistral-large",
+          model: "mistralai/ministral-3b",
+          max_tokens: 300,
           messages: [
             {
               role: "user",
