@@ -44,7 +44,7 @@ Give a clear, structured, easy-to-understand answer.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "ministalai/ministral-3b",
+          model: "mistralai/mistral-large",
           messages: [
             {
               role: "user",
