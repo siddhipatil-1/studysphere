@@ -44,7 +44,7 @@ Give a clear, structured, easy-to-understand answer.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openchat/openchat-7b",
+          model: "ministalai/ministral-3b",
           messages: [
             {
               role: "user",
