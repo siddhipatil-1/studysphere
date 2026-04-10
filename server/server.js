@@ -24,57 +24,79 @@ app.get("/", (req, res) => {
 });
 
 // --- ROUTE 2: Handle AI Queries ---
-const tryModels = [
-  "meta-llama/llama-3.2-3b-instruct:free",
-  "openai/gpt-oss-20b:free",
-  "google/gemma-3-27b-it:free",
-];
+app.post("/ask-ai", async (req, res) => {
+  try {
+    const { prompt, context } = req.body;
 
-let data = null;
+    const fullPrompt = `
+You are a helpful, professional AI Study Assistant.
 
-for (const model of tryModels) {
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://studysphere-1.vercel.app",
-        "X-Title": "StudySphere",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 300,
-        messages: [
-          {
-            role: "user",
-            content: fullPrompt,
+${context ? "STUDENT NOTES:\n" + context : ""}
+
+USER QUESTION:
+${prompt}
+
+Give a clear, structured, easy-to-understand answer.
+`;
+
+    const models = [
+      "meta-llama/llama-3.2-3b-instruct:free",
+      "openai/gpt-oss-20b:free",
+      "google/gemma-3-27b-it:free",
+    ];
+
+    let data = null;
+
+    for (const model of models) {
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://studysphere-1.vercel.app",
+            "X-Title": "StudySphere",
           },
-        ],
-      }),
-    },
-  );
+          body: JSON.stringify({
+            model,
+            max_tokens: 300,
+            messages: [
+              {
+                role: "user",
+                content: fullPrompt,
+              },
+            ],
+          }),
+        },
+      );
 
-  data = await response.json();
+      data = await response.json();
 
-  if (response.ok) {
-    break; // success
-  } else {
-    console.log(`Model failed: ${model}`, data);
+      if (response.ok) {
+        break;
+      } else {
+        console.log(`Model failed: ${model}`, data);
+      }
+    }
+
+    if (!data || !data.choices) {
+      return res
+        .status(500)
+        .json({ error: "All AI models are busy. Try again." });
+    }
+
+    const text =
+      data?.choices?.[0]?.message?.content ||
+      data?.choices?.[0]?.text ||
+      "No response from AI";
+
+    res.json({ text });
+  } catch (error) {
+    console.error("Server Error:", error);
+    res.status(500).json({ error: "Server error" });
   }
-}
-
-if (!data || !data.choices) {
-  return res.status(500).json({ error: "All AI models are busy. Try again." });
-}
-
-const text =
-  data?.choices?.[0]?.message?.content ||
-  data?.choices?.[0]?.text ||
-  "No response from AI";
-
-res.json({ text });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
