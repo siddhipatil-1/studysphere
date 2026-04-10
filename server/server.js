@@ -29,14 +29,19 @@ app.post("/ask-ai", async (req, res) => {
     const { prompt, context } = req.body;
 
     const fullPrompt = `
-You are a helpful, professional AI Study Assistant.
+You are a helpful AI Study Assistant.
 
 ${context ? "STUDENT NOTES:\n" + context : ""}
 
-USER QUESTION:
+QUESTION:
 ${prompt}
 
-Give a clear, structured, easy-to-understand answer.
+Answer in a SHORT and COMPLETE way:
+- Use bullet points
+- Include ALL key points
+- Keep each point 1 line
+- Do NOT give long explanations
+- Ensure the full answer fits in a short response
 `;
 
     const models = [
