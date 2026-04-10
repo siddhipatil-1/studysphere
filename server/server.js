@@ -40,9 +40,9 @@ Give a clear, structured, easy-to-understand answer.
 `;
 
     const models = [
-      "meta-llama/llama-3.2-3b-instruct:free",
-      "openai/gpt-oss-20b:free",
       "google/gemma-3-27b-it:free",
+      "openai/gpt-oss-20b:free",
+      "meta-llama/llama-3.2-3b-instruct:free",
     ];
 
     let data = null;
