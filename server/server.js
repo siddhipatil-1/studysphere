@@ -23,23 +23,6 @@ app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-app.get("/models", async (req, res) => {
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/models", {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      },
-    });
-
-    const data = await response.json();
-
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch models" });
-  }
-});
-
 // --- ROUTE 2: Handle AI Queries ---
 app.post("/ask-ai", async (req, res) => {
   try {
