@@ -19,6 +19,10 @@ app.use(express.json());
 // const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
+
 app.get("/models", async (req, res) => {
   try {
     const response = await fetch("https://openrouter.ai/api/v1/models", {
@@ -59,9 +63,11 @@ Give a clear, structured, easy-to-understand answer.
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://studysphere-1.vercel.app",
+          "X-Title": "StudySphere",
         },
         body: JSON.stringify({
-          model: "mistralai/ministral-3b",
+          model: "meta-llama/llama-3.2-3b-instruct:free",
           max_tokens: 300,
           messages: [
             {
@@ -80,7 +86,10 @@ Give a clear, structured, easy-to-understand answer.
       return res.status(500).json({ error: "AI failed" });
     }
 
-    const text = data.choices?.[0]?.message?.content || "No response";
+    const text =
+      data?.choices?.[0]?.message?.content ||
+      data?.choices?.[0]?.text ||
+      "No response from AI";
 
     res.json({ text });
   } catch (error) {
