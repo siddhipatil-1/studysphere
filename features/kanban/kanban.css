@@ -341,7 +341,7 @@ button:active {
    ============================================================ */
 .task-list {
   padding: 10px 10px 4px;
-  max-height: 120px;
+  max-height: 320px;
   flex-grow: 1;
   overflow-y: auto;
   scrollbar-width: thin;
