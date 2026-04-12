@@ -451,21 +451,9 @@
 
       <div class="main-grid">
         <div class="left-panel">
-          <!-- <div class="tab-bar">
-            <button class="tab-btn active">My Notes</button>
-            <input
-              type="file"
-              id="fileInput"
-              accept=".pdf,.txt"
-              onchange="uploadFile(event)"
-            />
-            <button class="tab-btn tab-btn-dark">All Resources</button>
-          </div> -->
-
           <textarea
             id="notesArea"
             placeholder="Paste your text notes here…"
-            disabled
           ></textarea>
 
           <div class="action-grid">
@@ -526,9 +514,8 @@
               <input
                 id="userInput"
                 type="text"
-                placeholder="AI is temporarily disabled"
+                placeholder="Ask your questions"
                 onkeypress="if (event.key === 'Enter') sendChat();"
-                disabled
               />
               <button class="send-btn" onclick="sendChat()">
                 <i
