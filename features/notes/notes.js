@@ -1,25 +1,4 @@
-/**
- * NOTES FEATURE MODULE – LOCAL STORAGE VERSION
- * Vanilla JS · Icons via Lucide (https://lucide.dev)
- *
- * ─────────────────────────────────────────────────────────────
- * MIGRATING TO SUPABASE LATER?
- * Swap out only the functions marked [STORAGE LAYER].
- * They are grouped at the top and mirror the Supabase originals:
- *
- *   loadNotesData()      → Supabase parallel SELECT (folders + notes)
- *   insertFolder()       → Supabase INSERT into note_folders
- *   updateFolder()       → Supabase UPDATE note_folders
- *   deleteFolders()      → Supabase DELETE IN note_folders
- *   insertNote()         → Supabase INSERT into notes
- *   deleteNoteRecord()   → Supabase DELETE from notes
- *   uploadNoteFile()     → Supabase Storage upload (currently base64)
- *   deleteNoteFile()     → Supabase Storage remove (currently no-op)
- *   persistState()       → internal flush, not needed in Supabase
- *
- * Everything else (state, rendering, events) stays identical.
- * ─────────────────────────────────────────────────────────────
- */
+
 
 /* ------------------------------------------------------------------ */
 /* CONFIG                                                              */
