@@ -45,8 +45,8 @@ Answer in a SHORT and COMPLETE way:
 `;
 
     const models = [
-      "google/gemma-3-27b-it:free",
       "openai/gpt-oss-20b:free",
+      "google/gemma-3-27b-it:free",
       "meta-llama/llama-3.2-3b-instruct:free",
     ];
 
