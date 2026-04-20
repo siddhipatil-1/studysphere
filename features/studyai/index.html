@@ -451,9 +451,10 @@
 
       <div class="main-grid">
         <div class="left-panel">
-          <textarea id="notesArea" placeholder="Paste your text notes here…">
-disabled for now</textarea
-          >
+          <textarea
+            id="notesArea"
+            placeholder="Paste your text notes here…"
+          ></textarea>
 
           <div class="action-grid">
             <button class="action-btn" onclick="runAI('Explain this simply')">
@@ -513,7 +514,7 @@ disabled for now</textarea
               <input
                 id="userInput"
                 type="text"
-                placeholder="Ask your questions(disabled for now)"
+                placeholder="Ask your questions"
                 onkeypress="if (event.key === 'Enter') sendChat();"
               />
               <button class="send-btn" onclick="sendChat()">
