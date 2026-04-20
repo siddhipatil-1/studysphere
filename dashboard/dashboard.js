@@ -1,38 +1,39 @@
-// ===============================
-// AUTH (keep your existing logic)
-// ===============================
-
+// Alias supabaseClient to window.supabase so feature modules can use either name
 window.supabase = window.supabaseClient;
 
+// Remove the FOUC guard once the page is fully loaded
 window.addEventListener("load", () => {
   document.body.classList.add("loaded");
 });
 
+// ─── MAIN DASHBOARD LOGIC ────────────────────────────────────────────────────
 (async function initDashboard() {
+  // Warm up the auth session before doing anything else
   await window.supabaseClient.auth.getSession();
 
-  // ===============================
-  // MAIN CONTENT TARGET
-  // ===============================
-
   const main = document.querySelector(".main");
+
+  // Features that load inside an iframe instead of the normal HTML+JS injection
   const IFRAME_FEATURES = {
     studyai: "../features/studyai/index.html",
   };
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  // Fetch the logged-in user; redirect to landing page if none found
   async function loadUser() {
     const { data, error } = await window.supabaseClient.auth.getUser();
-
     if (error || !data?.user) {
       window.location.href = "/landingpage/";
       return null;
     }
-
     return data.user;
   }
 
-  //=========================================================USERNAME POPUP================================
+  // ── Username setup popup ──────────────────────────────────────────────────
 
+  // Shown to new users who don't have a profile row yet.
+  // Validates the input, checks for uniqueness, then inserts the profile.
   function showUsernamePopup(user) {
     const overlay = document.createElement("div");
 
@@ -57,36 +58,17 @@ window.addEventListener("load", () => {
         box-shadow:0 0 40px rgba(0,0,0,0.3);
       ">
         <h2 style="margin-bottom: 10px;">Choose a Username</h2>
-        
-        <input 
+        <input
           id="usernameInput"
           placeholder="username"
-          style="
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 8px;
-            border: none;
-            outline: none;
-          "
+          style="width:100%;padding:10px;margin-top:10px;border-radius:8px;border:none;outline:none;"
         />
-
-        <p id="errorMsg" style="color: red; font-size: 12px;"></p>
-
+        <p id="errorMsg" style="color:red;font-size:12px;"></p>
         <button id="saveUsername"
-          style="
-            margin-top: 15px;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-          "
-        >
-          Continue
-        </button>
+          style="margin-top:15px;padding:10px 15px;border:none;border-radius:8px;cursor:pointer;"
+        >Continue</button>
       </div>
-    </div>
-  `;
+    </div>`;
 
     document.body.appendChild(overlay);
 
@@ -95,18 +77,18 @@ window.addEventListener("load", () => {
     const button = overlay.querySelector("#saveUsername");
 
     button.addEventListener("click", async () => {
-      let username = input.value.trim().toLowerCase();
+      const username = input.value.trim().toLowerCase();
 
       if (!username) {
         errorMsg.textContent = "Username cannot be empty";
         return;
       }
-
       if (username.length < 3) {
         errorMsg.textContent = "Minimum 3 characters";
         return;
       }
 
+      // Make sure no one else already has this username
       const { data: existing } = await window.supabaseClient
         .from("profiles")
         .select("username")
@@ -117,12 +99,9 @@ window.addEventListener("load", () => {
         return;
       }
 
-      const { error } = await window.supabaseClient.from("profiles").insert([
-        {
-          id: user.id,
-          username: username,
-        },
-      ]);
+      const { error } = await window.supabaseClient
+        .from("profiles")
+        .insert([{ id: user.id, username }]);
 
       if (error) {
         console.error(error);
@@ -131,15 +110,13 @@ window.addEventListener("load", () => {
       }
 
       overlay.remove();
-
-      const savedFeature = localStorage.getItem("currentFeature");
-      const featureToLoad = savedFeature || "home";
-
       await startApp(user);
     });
   }
 
-  // =====================================PROFILE AVATAR==================================================
+  // ── Avatar ────────────────────────────────────────────────────────────────
+
+  // Loads the user's username and puts the first letter into the avatar circle
   async function loadUserProfileUI(user) {
     const { data, error } = await window.supabaseClient
       .from("profiles")
@@ -152,21 +129,18 @@ window.addEventListener("load", () => {
       return;
     }
 
-    const username = data.username;
-
     const avatar = document.querySelector(".avatar");
     if (avatar) {
-      avatar.textContent = username.charAt(0).toUpperCase();
-      avatar.style.display = "flex";
-      avatar.style.alignItems = "center";
-      avatar.style.justifyContent = "center";
-      avatar.style.fontWeight = "bolder";
-      avatar.style.fontSize = "16px";
+      avatar.textContent = data.username.charAt(0).toUpperCase();
+      avatar.style.cssText +=
+        "display:flex;align-items:center;justify-content:center;font-weight:bolder;font-size:16px;";
     }
   }
 
-  // --==========================================CHECK USER PROFILE====================================================
+  // ── Profile check ─────────────────────────────────────────────────────────
 
+  // Returns true if the user already has a profile row.
+  // If not, shows the username popup and returns false.
   async function checkUserProfile(user) {
     const { data, error } = await window.supabaseClient
       .from("profiles")
@@ -187,25 +161,27 @@ window.addEventListener("load", () => {
     return true;
   }
 
+  // ── Boot sequence ─────────────────────────────────────────────────────────
+
   const user = await loadUser();
   if (!user) return;
 
-  const hasProfile = await checkUserProfile(user);
   window.notifications = [];
+  const hasProfile = await checkUserProfile(user);
 
   if (hasProfile) {
     await startApp(user);
   }
 
+  // ── Feature loader ────────────────────────────────────────────────────────
+
+  // Loads a feature into the main content area.
+  // iframe-based features just get injected as an <iframe>.
+  // All others fetch their HTML, inject it, then dynamically import their JS module.
   async function loadFeature(feature) {
     try {
       if (IFRAME_FEATURES[feature]) {
-        main.innerHTML = `
-        <iframe 
-          src="${IFRAME_FEATURES[feature]}" 
-          style="width:100%; height:100%; border:none;"
-        ></iframe>
-      `;
+        main.innerHTML = `<iframe src="${IFRAME_FEATURES[feature]}" style="width:100%;height:100%;border:none;"></iframe>`;
         window.activeFeatureModule = null;
         localStorage.setItem("currentFeature", feature);
         return;
@@ -219,13 +195,11 @@ window.addEventListener("load", () => {
 
       main.innerHTML = await res.text();
 
+      // Cache-bust the module import so re-navigating always gets fresh code
       const module = await import(jsPath + "?v=" + Date.now());
-
       window.activeFeatureModule = module;
 
-      if (module.init) {
-        await module.init(user);
-      }
+      if (module.init) await module.init(user);
 
       localStorage.setItem("currentFeature", feature);
     } catch (err) {
@@ -234,13 +208,13 @@ window.addEventListener("load", () => {
     }
   }
 
-  // ===============================
-  // SIDEBAR NAV HANDLING
-  // ===============================
+  // ── Sidebar nav ───────────────────────────────────────────────────────────
+
+  // On every sidebar link click: clear active state on all items,
+  // mark the clicked one active, then load that feature
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
-
       const feature = item.dataset.feature;
       if (!feature) return;
 
@@ -253,26 +227,21 @@ window.addEventListener("load", () => {
     });
   });
 
-  // ===============================
-  // INITIAL LOAD
-  // ===============================
-  const savedFeature = localStorage.getItem("currentFeature");
-  const featureToLoad = savedFeature || "home";
+  // ── Initial page load ─────────────────────────────────────────────────────
 
+  // Re-open whichever feature the user was last on (or "home" by default)
+  const featureToLoad = localStorage.getItem("currentFeature") || "home";
   loadFeature(featureToLoad);
 
+  // Sync the sidebar active state to match the loaded feature
   document.querySelectorAll(".nav-item").forEach((item) => {
-    if (item.dataset.feature === featureToLoad) {
-      item.classList.add("active");
-    } else {
-      item.classList.remove("active");
-    }
+    item.classList.toggle("active", item.dataset.feature === featureToLoad);
   });
 
-  // ===============================
-  // NOTIFICATION SYSTEM
-  // ===============================
+  // ── Notifications ─────────────────────────────────────────────────────────
 
+  // Fetches all notifications for the current user, newest first,
+  // then re-renders the panel and the unread dot
   async function loadNotificationsFromDB() {
     const { data: userData } = await window.supabaseClient.auth.getUser();
     const uid = userData?.user?.id;
@@ -290,11 +259,11 @@ window.addEventListener("load", () => {
     }
 
     window.notifications = data || [];
-
     renderNotificationPanel();
     updateNotificationDot();
   }
 
+  // Show or hide the red dot on the bell icon based on unread count
   function updateNotificationDot() {
     const dot = document.getElementById("notif-dot");
     if (!dot) return;
@@ -302,6 +271,7 @@ window.addEventListener("load", () => {
     dot.style.display = hasUnread ? "inline-block" : "none";
   }
 
+  // Rebuilds the notification list HTML from window.notifications
   function renderNotificationPanel() {
     const list = document.getElementById("notif-list");
     if (!list) return;
@@ -318,28 +288,23 @@ window.addEventListener("load", () => {
     }
 
     list.innerHTML = notifs
-      .map((n) => {
-        const timeStr = formatNotifTime(n.time);
-        const unreadClass = n.read ? "" : "notif-item--unread";
-        // Pick icon based on source
-        const iconSvg = getNotifIcon(n.source);
-
-        return `
-        <div class="notif-item ${unreadClass}" data-id="${n.id}">
-          <div class="notif-icon-wrap">${iconSvg}</div>
-          <div class="notif-body">
-            <div class="notif-title">${escapeNotif(n.title)}</div>
-            <div class="notif-message">${escapeNotif(n.message)}</div>
-            <div class="notif-time">${timeStr}</div>
-          </div>
-          ${!n.read ? '<div class="notif-unread-dot"></div>' : ""}
-        </div>`;
-      })
+      .map(
+        (n) => `
+      <div class="notif-item ${n.read ? "" : "notif-item--unread"}" data-id="${n.id}">
+        <div class="notif-icon-wrap">${getNotifIcon(n.source)}</div>
+        <div class="notif-body">
+          <div class="notif-title">${escapeNotif(n.title)}</div>
+          <div class="notif-message">${escapeNotif(n.message)}</div>
+          <div class="notif-time">${formatNotifTime(n.time)}</div>
+        </div>
+        ${!n.read ? '<div class="notif-unread-dot"></div>' : ""}
+      </div>`,
+      )
       .join("");
   }
 
+  // Returns an inline SVG icon matched to the notification's source feature
   function getNotifIcon(source) {
-    // Simple inline SVGs matching dashboard icon style
     const icons = {
       doubt: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
       kanban: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>`,
@@ -350,6 +315,7 @@ window.addEventListener("load", () => {
     return icons[source] || icons.default;
   }
 
+  // Converts a timestamp into a human-readable "Xm ago" / "Xh ago" string
   function formatNotifTime(date) {
     if (!date) return "";
     const diff = Math.floor((new Date() - new Date(date)) / 1000);
@@ -359,6 +325,7 @@ window.addEventListener("load", () => {
     return Math.floor(diff / 86400) + "d ago";
   }
 
+  // Safely escapes HTML special characters before injecting into the DOM
   function escapeNotif(str) {
     if (!str) return "";
     return str
@@ -367,7 +334,8 @@ window.addEventListener("load", () => {
       .replace(/>/g, "&gt;");
   }
 
-  // Global addNotification — called by feature modules
+  // Global function any feature module can call to push a new notification.
+  // Inserts the row into Supabase then refreshes the panel.
   window.addNotification = async function (notif) {
     const { data: userData } = await window.supabaseClient.auth.getUser();
     const uid = userData?.user?.id;
@@ -388,113 +356,90 @@ window.addEventListener("load", () => {
       return;
     }
 
-    // Reload from DB
     await loadNotificationsFromDB();
   };
 
-  // ── Bell button toggle ──
+  // ── Bell button ───────────────────────────────────────────────────────────
+
   const bell = document.querySelector(".icon-btn");
   const panel = document.getElementById("notif-panel");
+
   if (bell && panel) {
     bell.addEventListener("click", async (e) => {
       e.stopPropagation();
-
       const isOpen = panel.classList.contains("notif-panel--open");
 
       if (isOpen) {
         panel.classList.remove("notif-panel--open");
       } else {
+        // Mark all unread notifications as read when the panel opens
         const unreadIds = window.notifications
           .filter((n) => !n.read)
           .map((n) => n.id);
-
         if (unreadIds.length > 0) {
           await window.supabaseClient
             .from("notifications")
             .update({ read: true })
             .in("id", unreadIds);
         }
-
         await loadNotificationsFromDB();
-
         panel.classList.add("notif-panel--open");
       }
     });
   }
 
+  // Close the panel when the user clicks anywhere outside it
   document.addEventListener("click", (e) => {
     if (!panel) return;
-
-    const clickedInsidePanel = panel.contains(e.target);
-    const clickedBell = bell && bell.contains(e.target);
-
-    if (!clickedInsidePanel && !clickedBell) {
+    if (!panel.contains(e.target) && !(bell && bell.contains(e.target))) {
       panel.classList.remove("notif-panel--open");
     }
   });
 
-  // Clear all button
+  // Delete all notifications for this user from the DB, then re-render
   const clearBtn = document.getElementById("notif-clear-btn");
   if (clearBtn) {
     clearBtn.addEventListener("click", async () => {
-      // ✅ MAKE ASYNC
       const { data: userData } = await window.supabaseClient.auth.getUser();
       const uid = userData?.user?.id;
-
       if (!uid) return;
 
       await window.supabaseClient
         .from("notifications")
         .delete()
         .eq("user_id", uid);
-
       await loadNotificationsFromDB();
     });
   }
 
-  // Initial render
+  // Render the panel once on load (before any DB fetch completes)
   renderNotificationPanel();
   updateNotificationDot();
 
-  // ── Persistent realtime listeners (dashboard-level) ──────────────────────
-  //
-  // These run in the dashboard tab itself so notifications work regardless
-  // of which feature is open — or whether the shop is in another tab.
-  //
-  // SHOP SALES: watches the `purchases` table directly via postgres_changes.
-  //   When a new row appears whose product belongs to the current user,
-  //   we fire an in-dashboard notification. No cross-tab broadcast needed.
-  //
-  // GROUP EVENTS: the personal broadcast channel handles join_request and
-  //   member_status sent by group.js in any other browser session.
-  //
+  // ── Realtime listeners ────────────────────────────────────────────────────
+
+  // These are set up at the dashboard level so they keep working regardless
+  // of which feature the user currently has open.
   async function setupDashboardRealtime() {
     const { data: userData } = await window.supabaseClient.auth.getUser();
     const uid = userData?.user?.id;
     if (!uid) return;
 
-    // ── 1. Shop sales — postgres_changes on purchases ─────────────────────
-    // This fires in THIS tab whenever any purchase row is inserted.
-    // We then fetch the product to check if we are the seller.
+    // Watch the purchases table. When a new purchase comes in,
+    // look up the product and notify the user only if they are the seller.
     window.supabaseClient
       .channel("dashboard_purchases_watch")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "purchases" },
         async (payload) => {
-          const purchase = payload.new;
-
-          // Look up the product to find the seller
           const { data: product, error } = await window.supabaseClient
             .from("products")
             .select("seller_id, title")
-            .eq("id", purchase.product_id)
+            .eq("id", payload.new.product_id)
             .single();
 
-          if (error || !product) return;
-
-          // Only notify if WE are the seller
-          if (product.seller_id !== uid) return;
+          if (error || !product || product.seller_id !== uid) return;
 
           window.addNotification({
             source: "shop",
@@ -507,11 +452,9 @@ window.addEventListener("load", () => {
         console.log("[Dashboard] purchases channel status:", status);
       });
 
-    // ── 2. Group events — personal broadcast channel ───────────────────────
-    // group.js sends targeted broadcasts to "user_notif_{uid}" when:
-    //   • someone requests to join a group you own  → "join_request"
-    //   • you were approved or rejected             → "member_status"
-    // Subscribing here means these work even when Groups isn't loaded.
+    // Listen for group events that group.js broadcasts to this user's personal channel.
+    // join_request  → someone wants to join a group the current user owns
+    // member_status → the current user's own join request was approved or rejected
     window.supabaseClient
       .channel(`user_notif_${uid}`)
       .on("broadcast", { event: "join_request" }, (msg) => {
@@ -538,13 +481,16 @@ window.addEventListener("load", () => {
       })
       .subscribe();
   }
+
   setupDashboardRealtime();
 
-  // ===================DAILY STREAKS======================
+  // ── Daily activity streak ─────────────────────────────────────────────────
+
+  // Inserts one row per calendar day per user to track login streaks.
+  // Does nothing if today's row already exists.
   async function logDailyActivity(user) {
     const today = new Date().toISOString().split("T")[0];
 
-    // check if already logged today
     const { data } = await window.supabaseClient
       .from("user_activity")
       .select("id")
@@ -552,9 +498,8 @@ window.addEventListener("load", () => {
       .eq("activity_date", today)
       .maybeSingle();
 
-    if (data) return; // already logged today
+    if (data) return;
 
-    // insert new activity
     await window.supabaseClient.from("user_activity").insert([
       {
         user_id: user.id,
@@ -563,33 +508,29 @@ window.addEventListener("load", () => {
     ]);
   }
 
-  // ==============POST USERNAME RELOAD======================
+  // ── App start ─────────────────────────────────────────────────────────────
 
+  // Called once the user is confirmed to have a profile.
+  // Runs all the startup tasks in order.
   async function startApp(user) {
     await logDailyActivity(user);
     await loadUserProfileUI(user);
-
-    const savedFeature = localStorage.getItem("currentFeature");
-    const featureToLoad = savedFeature || "home";
-
-    await loadFeature(featureToLoad);
+    await loadFeature(localStorage.getItem("currentFeature") || "home");
     await loadNotificationsFromDB();
-
     updateNotificationDot();
   }
 
-  // ===============================
-  // LOGOUT
-  // ===============================
+  // ── Logout ────────────────────────────────────────────────────────────────
+
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await window.supabaseClient.auth.signOut();
     window.location.href = "/";
   });
 
-  // ===============================
-  // CLEAN UNIVERSAL SEARCH
-  // ===============================
+  // ── Universal search ──────────────────────────────────────────────────────
 
+  // Debounces the search input and delegates the query to whichever
+  // feature is currently active (each feature exposes its own search fn)
   const searchInput = document.querySelector(".topbar-search input");
 
   if (searchInput) {
@@ -597,46 +538,31 @@ window.addEventListener("load", () => {
 
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.trim().toLowerCase();
-
       clearTimeout(debounce);
 
       debounce = setTimeout(() => {
-        const currentFeature = localStorage.getItem("currentFeature");
+        const current = localStorage.getItem("currentFeature");
 
-        if (currentFeature === "notes" && window.activeFeatureModule?.search) {
+        if (current === "notes" && window.activeFeatureModule?.search)
           window.activeFeatureModule.search(query);
-        } else if (
-          currentFeature === "subjectbank" &&
-          window.sb?.performSearch
-        ) {
+        if (current === "subjectbank" && window.sb?.performSearch)
           window.sb.performSearch(query);
-        } else if (
-          currentFeature === "doubt" &&
-          window.activeFeatureModule?.search
-        ) {
+        if (current === "doubt" && window.activeFeatureModule?.search)
           window.activeFeatureModule.search(query);
-        } else if (
-          currentFeature === "group" &&
-          window.activeFeatureModule?.search
-        ) {
+        if (current === "group" && window.activeFeatureModule?.search)
           window.activeFeatureModule.search(query);
-        }
       }, 250);
     });
   }
 })();
 
-/* ════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE UI
-   Handles: drawer open/close, bottom nav delegation,
-            search bar toggle, active-state sync.
-
-   All feature loading is delegated to the existing sidebar
-   .nav-item click handlers above — nothing here duplicates
-   any feature or auth logic.
-════════════════════════════════════════════════════════════ */
+// ─── MOBILE UI ───────────────────────────────────────────────────────────────
+// Handles the slide-up drawer, bottom nav, search toggle, and active-state sync.
+// Feature loading is always delegated to the sidebar nav items above —
+// nothing here touches auth or data.
 (function initMobileUI() {
-  // ── Drawer ────────────────────────────────────────────────
+  // ── Drawer open / close ───────────────────────────────────────────────────
+
   const moreBtn = document.getElementById("mobileMoreBtn");
   const drawer = document.getElementById("mobileDrawer");
   const overlay = document.getElementById("mobileDrawerOverlay");
@@ -660,93 +586,82 @@ window.addEventListener("load", () => {
   if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
   if (overlay) overlay.addEventListener("click", closeDrawer);
 
-  // ── Drawer nav items → delegate to sidebar nav items ─────
-  // The sidebar .nav-item elements already have the feature-load
-  // event listeners from initDashboard() above. We just click them.
-  document
-    .querySelectorAll(".mobile-drawer-nav .nav-item")
-    .forEach(function (item) {
-      item.addEventListener("click", function (e) {
+  // ── Delegate nav clicks to the sidebar ───────────────────────────────────
+
+  // Both the drawer nav and the bottom nav just click the matching
+  // sidebar item, which already has all the feature-loading logic attached.
+  function delegateNavTo(selector) {
+    document.querySelectorAll(selector).forEach((item) => {
+      item.addEventListener("click", (e) => {
         e.preventDefault();
         closeDrawer();
-        var feature = item.dataset.feature;
+        const feature = item.dataset.feature;
         if (!feature) return;
-        var target = document.querySelector(
-          ".sidebar .nav-item[data-feature='" + feature + "']",
+        const target = document.querySelector(
+          `.sidebar .nav-item[data-feature='${feature}']`,
         );
         if (target) target.click();
       });
-    });
-
-  // ── Bottom nav items → delegate to sidebar nav items ─────
-  document
-    .querySelectorAll(".mobile-bottom-nav .mob-nav-item[data-feature]")
-    .forEach(function (item) {
-      item.addEventListener("click", function (e) {
-        e.preventDefault();
-        var feature = item.dataset.feature;
-        if (!feature) return;
-        var target = document.querySelector(
-          ".sidebar .nav-item[data-feature='" + feature + "']",
-        );
-        if (target) target.click();
-      });
-    });
-
-  // ── Drawer logout → delegates to main logout button ──────
-  var logoutDrawer = document.getElementById("logoutBtnDrawer");
-  if (logoutDrawer) {
-    logoutDrawer.addEventListener("click", function (e) {
-      e.preventDefault();
-      closeDrawer();
-      var mainLogout = document.getElementById("logoutBtn");
-      if (mainLogout) mainLogout.click();
     });
   }
 
-  // ── Sync bottom nav active state with sidebar ─────────────
-  // Watches for class changes on sidebar nav items (set by the
-  // existing initDashboard listener) and mirrors them on the bottom nav.
-  var sidebarNav = document.querySelector(".sidebar-nav");
+  delegateNavTo(".mobile-drawer-nav .nav-item");
+  delegateNavTo(".mobile-bottom-nav .mob-nav-item[data-feature]");
+
+  // ── Drawer logout ─────────────────────────────────────────────────────────
+
+  const logoutDrawer = document.getElementById("logoutBtnDrawer");
+  if (logoutDrawer) {
+    logoutDrawer.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeDrawer();
+      document.getElementById("logoutBtn")?.click();
+    });
+  }
+
+  // ── Sync bottom nav active state ──────────────────────────────────────────
+
+  // Watches the sidebar for active-class changes and mirrors them
+  // on the bottom nav buttons so both always agree
+  const sidebarNav = document.querySelector(".sidebar-nav");
   if (sidebarNav) {
-    var activeObserver = new MutationObserver(function () {
-      var activeSidebarItem = document.querySelector(
-        ".sidebar .nav-item.active",
-      );
-      var activeFeature = activeSidebarItem
-        ? activeSidebarItem.dataset.feature
-        : "";
+    new MutationObserver(() => {
+      const activeFeature =
+        document.querySelector(".sidebar .nav-item.active")?.dataset.feature ||
+        "";
       document
         .querySelectorAll(".mob-nav-item[data-feature]")
-        .forEach(function (btn) {
+        .forEach((btn) => {
           btn.classList.toggle("active", btn.dataset.feature === activeFeature);
         });
-    });
-    activeObserver.observe(sidebarNav, {
+    }).observe(sidebarNav, {
       attributes: true,
       subtree: true,
       attributeFilter: ["class"],
     });
   }
 
-  // ── Mobile search bar toggle ──────────────────────────────
-  var topbar = document.querySelector(".topbar");
-  var searchToggle = document.getElementById("searchToggleBtn");
-  var searchClose = document.getElementById("searchCloseBtn");
-  var searchInput = document.querySelector("#topbarSearch input");
+  // ── Mobile search toggle ──────────────────────────────────────────────────
+
+  const topbar = document.querySelector(".topbar");
+  const searchToggle = document.getElementById("searchToggleBtn");
+  const searchClose = document.getElementById("searchCloseBtn");
+  const searchInput = document.querySelector("#topbarSearch input");
 
   function openSearch() {
     if (!topbar) return;
     topbar.classList.add("search-open");
-    if (searchInput) searchInput.focus();
+    searchInput?.focus();
   }
 
   function closeSearch() {
     if (!topbar) return;
     topbar.classList.remove("search-open");
-    if (searchInput) searchInput.value = "";
-    // Fire an input event so the existing search debounce clears any active filter
-    if (searchInput) searchInput.dispatchEvent(new Event("input"));
+    if (searchInput) {
+      searchInput.value = "";
+      // Trigger the search debounce with an empty query to clear any active filter
+      searchInput.dispatchEvent(new Event("input"));
+    }
   }
 
   if (searchToggle) searchToggle.addEventListener("click", openSearch);
