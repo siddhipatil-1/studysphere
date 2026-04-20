@@ -39,7 +39,7 @@ ${prompt}
 Answer in a SHORT and COMPLETE way:
 - Use bullet points
 - Include ALL key points
-- Keep each point 1 line
+- Keep each point 1 or 2 line
 - Do NOT give long explanations
 - Ensure the full answer fits in a short response
 `;
