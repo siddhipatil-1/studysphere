@@ -1,8 +1,4 @@
-/**
- * doubt.js — 3-tier tag system (stream → branch → subject) + Supabase backend
- *
- * Assumes `supabase` client is already initialised on window by your dashboard.
- */
+
 
 // ─────────────────────────────────────────────
 //  TAXONOMY  (stream → branch → subject)
@@ -413,7 +409,7 @@ function setupRealtime() {
           (q) => q.id === payload.new.question_id,
         );
 
-        // 🔔 NOTIFICATION: only if it's YOUR question and someone else answered
+        // NOTIFICATION: only if it's YOUR question and someone else answered
         if (
           question &&
           currentUser &&

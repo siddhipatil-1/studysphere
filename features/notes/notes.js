@@ -150,15 +150,9 @@ async function deleteNoteRecord(id) {
   appState.notes = appState.notes.filter((n) => n.id !== id);
 }
 
-/**
- * Upload a file — stores as base64 in localStorage.
- * In Supabase version, upload to Storage bucket and return public URL.
- * NOTE: Large files (>2–3 MB) may exceed localStorage quota.
- * Consider warning users or compressing images before migration.
- * @param {File} file
- * @returns {Promise<string|null>} data URL (localStorage) or public URL (Supabase)
- */
-/**
+
+
+/*
  * Upload a file to Supabase Storage.
  */
 async function uploadNoteFile(file) {
@@ -348,7 +342,7 @@ function renderNotes() {
 
   let notes;
 
-  // 🔍 GLOBAL SEARCH MODE
+  //  GLOBAL SEARCH MODE
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
 
@@ -373,7 +367,7 @@ function renderNotes() {
     notes = appState.notes.filter((n) => n.folder_id === currentfolder_id);
   }
 
-  // 🔥 APPLY FILTER
+  // APPLY FILTER
   if (currentFilter !== "all") {
     notes = notes.filter((n) => n.type === currentFilter);
   }
@@ -744,7 +738,7 @@ async function saveNote() {
   if (!content) return;
 
   if (editingNoteId) {
-    // 🔥 UPDATE EXISTING NOTE IN SUPABASE
+    // UPDATE EXISTING NOTE IN SUPABASE
     const { error } = await window.supabase
       .from("notes")
       .update({

@@ -1,14 +1,10 @@
-/**
- * KANBAN BOARD – SUPABASE VERSION
- * Vanilla JS · Designed for dynamic dashboard injection
- */
+
 
 /* ------------------------------------------------------------------ */
 /* CONFIG                                                              */
 /* ------------------------------------------------------------------ */
 
 // localStorage key used to track which notifications have already been
-// sent today, so the user doesn't get spammed on every page load.
 const NOTIF_SENT_KEY = "kanban_notif_sent_v1"; // { "taskText|deadline": "YYYY-MM-DD" }
 
 /* ------------------------------------------------------------------ */
@@ -154,16 +150,6 @@ function formatDate(dateStr) {
 /* DEADLINE NOTIFICATIONS                                              */
 /* ------------------------------------------------------------------ */
 
-/**
- * Scans ALL boards for tasks that need a deadline notification today.
- *
- * Rules:
- *  - Task must NOT be marked completed.
- *  - Days remaining must be 0, 1, 2, or 3  →  upcoming warning.
- *  - Days remaining < 0                     →  overdue (fires every day).
- *  - Each task gets at most ONE notification per calendar day
- *    (tracked in localStorage so page refreshes don't spam).
- */
 function checkDeadlineNotifications() {
   if (typeof window.addNotification !== "function") return;
 
@@ -520,11 +506,6 @@ function renderKanbanUI() {
 /* DRAG SYNC                                                           */
 /* ------------------------------------------------------------------ */
 
-/**
- * Rebuilds kanbanData from the current DOM card order after a drag.
- * Reads deadline AND completed from the in-memory task objects so
- * neither field is lost when cards are reordered.
- */
 function syncDragPositions() {
   // Build a flat lookup: taskText → full task object
   // (across all cols of the active board, pre-drag state)
